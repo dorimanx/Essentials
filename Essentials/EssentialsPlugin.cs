@@ -7,11 +7,8 @@ using System.Windows.Controls;
 using Essentials.Commands;
 using Essentials.Patches;
 using NLog;
-using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Torch;
@@ -20,15 +17,12 @@ using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.API.Session;
 using Torch.Commands;
-using Torch.Managers;
 using Torch.Managers.PatchManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Session;
 using Torch.Views;
-using VRage.Game;
 using VRage.Game.Entity;
-using VRage.Game.ModAPI;
 using VRageMath;
 using Newtonsoft.Json;
 
@@ -55,7 +49,7 @@ namespace Essentials
         RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
 
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid() { DataContext = Config/*, IsEnabled = false*/});
 
         public void Save()
         {
@@ -63,40 +57,47 @@ namespace Essentials
         }
 
         /// <inheritdoc />
+        [Obsolete]
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
         public override void Init(ITorchBase torch)
+#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             base.Init(torch);
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
+            ConvertScheduleTime();
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
             homeDataPath = Path.Combine(StoragePath, "players.json");
-            if (!File.Exists(homeDataPath)) {
+            if (!File.Exists(homeDataPath))
+            {
                 File.Create(homeDataPath);
             }
-            
+
 
 
             rankDataPath = Path.Combine(StoragePath, "ranks.json");
-            if (!File.Exists(rankDataPath)) {
+            if (!File.Exists(rankDataPath))
+            {
                 File.Create(rankDataPath);
             }
-            
+
 
 
             Instance = this;
             _pm = torch.Managers.GetManager<PatchManager>();
             _context = _pm.AcquireContext();
             SessionDownloadPatch.Patch(_context);
-            
+
             if (Config.CutGameTags)
                 GameTagsPatch.Patch(_context);
         }
 
+        [Obsolete]
         private void SessionChanged(ITorchSession session, TorchSessionState state)
         {
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
@@ -107,12 +108,14 @@ namespace Essentials
             {
                 case TorchSessionState.Loading:
                     string homeData = File.ReadAllText(homeDataPath);
-                    if (!string.IsNullOrEmpty(homeData)) {
+                    if (!string.IsNullOrEmpty(homeData))
+                    {
                         PlayerAccountModule.PlayersAccounts = JsonConvert.DeserializeObject<List<PlayerAccountModule.PlayerAccountData>>(File.ReadAllText(homeDataPath));
                     }
 
                     string rankdata = File.ReadAllText(rankDataPath);
-                    if (!string.IsNullOrEmpty(rankdata)) {
+                    if (!string.IsNullOrEmpty(rankdata))
+                    {
                         RanksAndPermissionsModule.Ranks = JsonConvert.DeserializeObject<List<RanksAndPermissionsModule.RankData>>(File.ReadAllText(rankDataPath));
                     }
 
@@ -127,9 +130,9 @@ namespace Essentials
                     AccModule.ValidateRanks();
 
                     mpMan.PlayerLeft += ResetMotdOnce;
-                    cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
+                    cmdMan.OnCommandExecuting += RanksAndPermissions.HasCommandPermission;
                     MyEntities.OnEntityAdd += EntityAdded;
-                    if(Config.StopShipsOnStart)
+                    if (Config.StopShipsOnStart)
                         StopShips();
                     _control?.Dispatcher.Invoke(() =>
                                                {
@@ -160,11 +163,11 @@ namespace Essentials
                 return;
 
             var b = myEntity as MyInventoryBagEntity;
-            if(b == null)
+            if (b == null)
                 return;
-            
+
             if (Config.BackpackLimit == 0)
-            { 
+            {
                 _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
                 return;
             }
@@ -179,13 +182,14 @@ namespace Essentials
         }
 
 
-        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong,string> RoleData) {
+        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
+        {
             PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
-            
+
         }
 
         private void ProcessBags()
-        { 
+        {
             //bags don't have inventory in the Add event, so we wait until the next tick. I hate everything.
             foreach (var bags in _bagTracker.Values)
             {
@@ -281,7 +285,7 @@ namespace Essentials
             var id = player.Client.SteamUserId;
             if (id <= 0) //can't remember if this returns 0 or -1 on error.
                 return;
-            
+
             string name = player.Identity?.DisplayName ?? "player";
 
             bool newUser = !Config.KnownSteamIds.Contains(id);
@@ -307,11 +311,27 @@ namespace Essentials
         }
 
         /// <inheritdoc />
+        [Obsolete]
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
         public override void Dispose()
+#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged -= SessionChanged;
             _sessionManager = null;
+        }
+
+        //Todo Remove This method next update
+        public void ConvertScheduleTime()
+        {
+            foreach (var command in _config.Data.AutoCommands)
+            {
+                if (command.ScheduledTime == TimeSpan.Zero.ToString() || command.CommandTrigger != Trigger.Scheduled) continue;
+                command.Interval = command.ScheduledTime;
+                command.ScheduledTime = TimeSpan.Zero.ToString();
+            }
+            _config.Save();
+
         }
     }
 }
