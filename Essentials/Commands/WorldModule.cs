@@ -3,37 +3,42 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 using NLog;
-using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Gui;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Screens.Helpers;
 using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Sandbox.ModAPI;
-using SpaceEngineers.Game.GUI;
+using Sandbox.Game.GameSystems.BankingAndCurrency;
 using Torch.Commands;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Commands.Permissions;
 using Torch.Managers;
 using Torch.Utils;
-using Torch.API.Managers;
-using Torch.API.Plugins;
-using Torch.API.Session;
 using VRage.Game;
 using VRage.Game.ModAPI;
-using VRage.Network;
 
 namespace Essentials.Commands
 {
     public class WorldModule : CommandModule
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
+
+        private static readonly FieldInfo GpsDicField = typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
+
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
+        [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]
+        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _relationsGet;
+        [ReflectedGetter(Name = "m_relationsBetweenPlayersAndFactions", Type = typeof(MyFactionCollection))]
+        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _playerRelationsGet;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         [Command("identity clean", "Remove identities that have not logged on in X days.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
@@ -42,11 +47,14 @@ namespace Essentials.Commands
             var count = 0;
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+
+            CleanGPSSandbox(days);
+            CleanSandboxBankAccounts(days);
+
             foreach (var identity in idents)
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
                     RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
@@ -67,6 +75,10 @@ namespace Essentials.Commands
             var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+
+            CleanGPSSandbox(days);
+            CleanSandboxBankAccounts(days);
+
             foreach (var identity in idents)
             {
                 if (identity.LastLoginTime < cutoff)
@@ -93,17 +105,27 @@ namespace Essentials.Commands
 
         [Command("identity clear", "Clear identity of specific player")]
         [Permission(MyPromoteLevel.Admin)]
-        public void PurgeIdentity (string playername) {
+        public void PurgeIdentity(string playername)
+        {
             var count2 = 0;
+            var GpsCount = 0;
             var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
-            foreach (var identity in idents) {
-                if (identity.DisplayName == playername) {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+            var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
+            var idCache = new HashSet<long>();
+
+            foreach (var identity in idents)
+            {
+                if (identity.DisplayName == playername)
+                {
+                    MyBankingSystem.RemoveAccount_Clients(identity.IdentityId);
+                    idCache.Add(identity.IdentityId);
                     RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    foreach (var grid in grids) {
-                        if (grid.BigOwners.Contains(identity.IdentityId)) {
+                    foreach (var grid in grids)
+                    {
+                        if (grid.BigOwners.Contains(identity.IdentityId))
+                        {
                             grid.Close();
                             count2++;
                         }
@@ -111,9 +133,20 @@ namespace Essentials.Commands
                 }
             }
 
+            if (idCache.Count > 0)
+            {
+                foreach (var id in idCache.ToList())
+                {
+                    if (playerGpss.ContainsKey(id))
+                        playerGpss.Remove(id);
+                }
+                GpsCount += idCache.Count;
+            }
+            idCache.Clear();
+
             RemoveEmptyFactions();
             FixBlockOwnership();
-            Context.Respond($"Removed identity and {count2} grids owned by them.");
+            Context.Respond($"Removed identity and {count2} grids owned by them, also bank account and {GpsCount} GPS Inventory.");
         }
 
         [Command("rep wipe", "Resets the reputation on the server")]
@@ -181,7 +214,7 @@ namespace Essentials.Commands
                 sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction?.Members)
                 {
-                    if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key)||
+                    if (!MySession.Static.Players.HasIdentity(player.Key) && !MySession.Static.Players.IdentityIsNpc(player.Key) ||
                         string.IsNullOrEmpty(MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName)) continue; //This is needed to filter out players with no id.
                     sb.AppendLine($"{MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName}");
                 }
@@ -192,8 +225,6 @@ namespace Essentials.Commands
             {
                 ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
             }
-
-
         }
 
         private static void RemoveEmptyFactions()
@@ -238,7 +269,7 @@ namespace Essentials.Commands
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
             if (fac == null)
                 return false;
- 
+
             /* 
              * VisualScriptLogicProvider takes care of removal of faction if last 
              * identity is kicked, and promotes the next player in line to Founder 
@@ -250,9 +281,9 @@ namespace Essentials.Commands
 
             return true;
         }
-        
+
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
-        
+
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
         /// Removes a faction from the server and all clients because Keen fucked up their own system.
@@ -266,7 +297,7 @@ namespace Essentials.Commands
             //        (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
             //    MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
             NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
-            if(!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
+            if (!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
             MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
         }
 
@@ -292,12 +323,6 @@ namespace Essentials.Commands
             return count;
         }
 
-        private static readonly FieldInfo GpsDicField = typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        private static readonly FieldInfo CamerasField = typeof(MySession).GetField("Cameras", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
-
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanSandbox()
@@ -309,8 +334,7 @@ namespace Essentials.Commands
             //find all identities owning a block
             foreach (var entity in MyEntities.GetEntities())
             {
-                var grid = entity as MyCubeGrid;
-                if (grid == null)
+                if (!(entity is MyCubeGrid grid))
                     continue;
                 validIdentities.UnionWith(grid.SmallOwners);
             }
@@ -372,7 +396,7 @@ namespace Essentials.Commands
             var f = SeedParamField.GetValue(g) as HashSet<MyObjectSeedParams>;
             count += f.Count;
             f.Clear();
-            
+
             //TODO
             /*
             foreach (var history in MySession.Static.ChatHistory)
@@ -399,7 +423,7 @@ namespace Essentials.Commands
                 }
             }
             */
-            
+
             var cf = AllCamerasField.GetValue(CamerasField.GetValue(MySession.Static)) as Dictionary<MyPlayer.PlayerId, Dictionary<long, MyEntityCameraSettings>>;
             count += cf.Count;
             cf.Clear();
@@ -407,10 +431,111 @@ namespace Essentials.Commands
             Context.Respond($"Removed {count} unnecessary elements.");
         }
 
-        [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]
-        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _relationsGet;
-        [ReflectedGetter(Name = "m_relationsBetweenPlayersAndFactions", Type = typeof(MyFactionCollection))]
-        private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _playerRelationsGet;
+        [Command("gps clean", "Cleans up old GPS marks from the sandbox file, for identities that have not logged on in X days")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanGPSSandbox(int days)
+        {
+            if (days <= 0)
+            {
+                Context.Respond($"Input number of days player have not logged on in");
+                return;
+            }
+
+            int count = 0;
+            int countnotexisting = 0;
+            var OldIdentities = new HashSet<long>();
+            var AllIdentities = new HashSet<long>();
+            var idCache = new HashSet<long>();
+            var LostidCache = new HashSet<long>();
+            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+            var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+            var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
+
+            foreach (var identity in idents)
+            {
+                AllIdentities.Add(identity.IdentityId);
+
+                if (identity.LastLoginTime < cutoff)
+                    OldIdentities.Add(identity.IdentityId);
+            }
+
+            foreach (var id in playerGpss.Keys)
+            {
+                if (OldIdentities.Count > 0 && OldIdentities.ToList().Contains(id))
+                    idCache.Add(id);
+
+                if (AllIdentities.Count > 0 && !AllIdentities.ToList().Contains(id))
+                    LostidCache.Add(id);
+            }
+            count += idCache.Count;
+            countnotexisting += LostidCache.Count;
+
+            // delete requested old gps data for existing Identities
+            if (idCache.Count > 0)
+            {
+                foreach (var id in idCache)
+                {
+                    if (playerGpss.ContainsKey(id))
+                        playerGpss.Remove(id);
+                }
+            }
+
+            // delete existing old gps data for not existing Identities
+            if (LostidCache.Count > 0)
+            {
+                foreach (var Lostid in LostidCache)
+                {
+                    if (playerGpss.ContainsKey(Lostid))
+                        playerGpss.Remove(Lostid);
+                }
+            }
+
+            idCache.Clear();
+            OldIdentities.Clear();
+            LostidCache.Clear();
+            AllIdentities.Clear();
+
+            Context.Respond($"Removed {count} old GPS Junk for existing players that have not logged on in {days} days, and {countnotexisting} for no longer existing players.");
+        }
+
+        [Command("bank clean", "Cleans up old bank accounts from the sandbox file, for identities that have not logged on in X days")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanSandboxBankAccounts(int days)
+        {
+            if (days <= 0)
+            {
+                Context.Respond($"Input number of days player have not logged on in");
+                return;
+            }
+
+            int count = 0;
+            var OldIdentities = new HashSet<long>();
+            var AllIdentities = new HashSet<long>();
+            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+            var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+
+            foreach (var identity in idents)
+            {
+                AllIdentities.Add(identity.IdentityId);
+
+                if (identity.LastLoginTime < cutoff)
+                    OldIdentities.Add(identity.IdentityId);
+            }
+
+            if (OldIdentities.Count > 0)
+            {
+                foreach (var id in OldIdentities.ToList())
+                {
+                    MyBankingSystem.RemoveAccount_Clients(id);
+                }
+            }
+
+            count += OldIdentities.Count;
+
+            OldIdentities.Clear();
+
+            Context.Respond($"Removed {count} old Bank Accounts for existing players that have not logged on in {days} days.");
+        }
 
         private static int WipeRep(bool removePlayerToFaction, bool removeFactionToFaction)
         {
@@ -472,7 +597,7 @@ namespace Essentials.Commands
             }
 
             //Add Factions with at least one member to valid identities
-            foreach (var faction in MySession.Static.Factions.Factions.Where(x=>x.Value.Members.Count > 0))
+            foreach (var faction in MySession.Static.Factions.Factions.Where(x => x.Value.Members.Count > 0))
             {
                 validIdentities.Add(faction.Key);
             }
@@ -500,7 +625,7 @@ namespace Essentials.Commands
                 collection2.Remove(pair);
                 result++;
             }
-            
+
 
             //_relationsSet.Invoke(MySession.Static.Factions,collection);
             //_playerRelationsSet.Invoke(MySession.Static.Factions,collection2);
