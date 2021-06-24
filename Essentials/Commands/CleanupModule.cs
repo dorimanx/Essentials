@@ -49,12 +49,16 @@ namespace Essentials.Commands
             var count = 0;
             foreach (var grid in ScanConditions(Context.Args))
             {
-                Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
-                EjectPilots(grid);
-                grid.Close();
-                count++;
-            }
+                if (grid != null && !grid.MarkedForClose && !grid.Closed)
+                {
+                    if (grid.EntityId != 0L && grid.DisplayName != null)
+                        Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
 
+                    EjectPilots(grid);
+                    grid.Close();
+                    count++;
+                }
+            }
             Context.Respond($"Deleted {count} grids matching the given conditions.");
             Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
         }
@@ -65,9 +69,13 @@ namespace Essentials.Commands
             var count = 0;
             foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
             {
-                Log.Info($"Deleting floating object: {floater.DisplayName}");
-                floater.Close();
-                count++;
+                if (floater != null)
+                {
+                    if (floater.DisplayName != null)
+                        Log.Info($"Deleting floating object: {floater.DisplayName}");
+                    floater.Close();
+                    count++;
+                }
             }
             Context.Respond($"Deleted {count} floating objects.");
             Log.Info($"Cleanup deleted {count} floating objects");
@@ -91,7 +99,7 @@ namespace Essentials.Commands
 
         public CleanupModule()
         {
-            var methods = typeof(CleanupModule).GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
+            var methods = typeof(CleanupModule).GetMethods(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
             _conditionLookup = new List<Condition>(methods.Length);
             foreach (var m in methods)
             {
@@ -224,7 +232,7 @@ namespace Essentials.Commands
         }
 
         [Condition("hasgridtype", helpText: "Finds grids with the specified grid type (large | small | ship | static).")]
-        public bool HasGridType(MyCubeGrid grid, string gridType) 
+        public bool HasGridType(MyCubeGrid grid, string gridType)
         {
             if (string.IsNullOrEmpty(gridType))
                 return false;
@@ -232,13 +240,13 @@ namespace Essentials.Commands
             if (string.Compare(gridType, "static", StringComparison.InvariantCultureIgnoreCase) == 0)
                 return grid.IsStatic;
 
-            if (string.Compare(gridType, "ship", StringComparison.InvariantCultureIgnoreCase) == 0) 
+            if (string.Compare(gridType, "ship", StringComparison.InvariantCultureIgnoreCase) == 0)
                 return !grid.IsStatic;
 
             if (string.Compare(gridType, "large", StringComparison.InvariantCultureIgnoreCase) == 0)
                 return grid.GridSizeEnum == VRage.Game.MyCubeSize.Large;
 
-            if (string.Compare(gridType, "small", StringComparison.InvariantCultureIgnoreCase) == 0) 
+            if (string.Compare(gridType, "small", StringComparison.InvariantCultureIgnoreCase) == 0)
                 return grid.GridSizeEnum == VRage.Game.MyCubeSize.Small;
 
             // In all other cases, just return false.
@@ -314,12 +322,11 @@ namespace Essentials.Commands
 
             foreach (var v in voxels)
             {
-                var planet = v as MyPlanet;
-                if (planet == null)
+                if (!(v is MyPlanet planet))
                     continue;
 
                 var dist2center = Vector3D.DistanceSquared(s.Center, planet.PositionComp.WorldVolume.Center);
-                if (dist2center <= (planet.MaximumRadius * planet.MaximumRadius) / 2)
+                if (dist2center <= planet.MaximumRadius * planet.MaximumRadius / 2f)
                     return true;
             }
 
@@ -342,7 +349,7 @@ namespace Essentials.Commands
         public bool CenterDistanceLessThan(MyCubeGrid grid, double dist)
         {
             dist *= dist;
-            
+
             return Vector3D.DistanceSquared(Vector3D.Zero, grid.PositionComp.GetPosition()) < dist;
         }
 
@@ -361,7 +368,7 @@ namespace Essentials.Commands
                 return grid.BigOwners.Count > 0 &&
                        MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
             }
-            
+
 
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
             {
@@ -386,7 +393,7 @@ namespace Essentials.Commands
 
             return grid.BigOwners.Contains(identityId);
         }
-        
+
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
@@ -413,10 +420,10 @@ namespace Essentials.Commands
         /// <param name="grid"></param>
         public void EjectPilots(MyCubeGrid grid)
         {
-            var b = grid.GetFatBlocks<MyCockpit>();
-            foreach (var c in b)
+            foreach (var c in grid.GetFatBlocks<MyCockpit>())
             {
-                c.RemovePilot();
+                if (c != null && c.Pilot != null)
+                    c.RemovePilot();
             }
         }
 
