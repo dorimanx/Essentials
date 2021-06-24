@@ -62,7 +62,7 @@ namespace Essentials
 
         private bool _newUserMotdUrl;
         [Display(Name = "Url for New Users Only", Description = "MOTD URL for new users only")]
-        public bool NewUserMotdUrl{get => _newUserMotdUrl;set => SetValue(ref _newUserMotdUrl, value);}
+        public bool NewUserMotdUrl { get => _newUserMotdUrl; set => SetValue(ref _newUserMotdUrl, value); }
 
         private bool _stopShips;
         [Display(Name = "Stop entities on start", Description = "Stop all entities in the world when the server starts.")]
@@ -71,7 +71,7 @@ namespace Essentials
 
         private bool _utilityShowPosition;
 
-        [Display(Name = "Grid list show position",Description = "Show users the position of all grids they own in the grids list command.")]
+        [Display(Name = "Grid list show position", Description = "Show users the position of all grids they own in the grids list command.")]
         public bool UtilityShowPosition
         {
             get => _utilityShowPosition;
@@ -80,7 +80,7 @@ namespace Essentials
 
         private bool _markerShowPosition;
 
-        [Display(Name = "Grid list GPS marker",Description ="Show uservers the poition of all grids they own by gps marker")]
+        [Display(Name = "Grid list GPS marker", Description = "Show uservers the poition of all grids they own by gps marker")]
         public bool MarkerShowPosition
         {
             get => _markerShowPosition;
@@ -95,7 +95,7 @@ namespace Essentials
             set => SetValue(ref _backpackLimit, value);
         }
 
-        [Display(Visible=false)]
+        [Display(Visible = false)]
         public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
 
         private bool _packRespawn;
@@ -178,7 +178,7 @@ namespace Essentials
 
         private MyObjectBuilder_Toolbar _defaultToolbar;
 
-        [Display(Visible=false)]
+        [Display(Visible = false)]
         //TODO!
         public ToolbarWrapper DefaultToolbar
         {
@@ -200,7 +200,7 @@ namespace Essentials
                         }
                     }
                 }
-                
+
                 if (valueChanged)
                     SetValue(ref _defaultToolbar, value);
             }
@@ -243,7 +243,7 @@ namespace Essentials
 
             public static implicit operator ToolbarWrapper(MyObjectBuilder_Toolbar o)
             {
-                return new ToolbarWrapper(){Data = o};
+                return new ToolbarWrapper() { Data = o };
             }
         }
     }

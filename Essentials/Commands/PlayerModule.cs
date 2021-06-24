@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Sandbox.Game.Entities;
 using Sandbox.Game.World;
 using Torch.Commands;
 using Torch.Commands.Permissions;
-using Torch.Managers;
 using VRage.Game;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
@@ -73,13 +68,14 @@ namespace Essentials
 
         [Command("tphere", "Teleport another entity directly to you.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
-        public void TeleportHere(string entityToMove, string destination = null) 
+        public void TeleportHere(string entityToMove, string destination = null)
         {
             Teleport(entityToMove, destination);
         }
 
         [Command("w", "Send a private message to another player.")]
         [Permission(MyPromoteLevel.None)]
+        [Obsolete]
         public void Whisper(string playerName)
         {
             if (Context.Args.Count < 1)
@@ -142,7 +138,7 @@ namespace Essentials
                 Context.Respond($"Steam ID {steamId} banned.");
                 return;
             }
-            
+
             Context.Respond($"Player '{nameOrSteamId}' not found.");
         }
 
@@ -170,7 +166,7 @@ namespace Essentials
                 Context.Respond($"Steam ID {steamId} unbanned.");
                 return;
             }
-            
+
             Context.Respond($"Player '{nameOrSteamId}' not found.");
         }
 

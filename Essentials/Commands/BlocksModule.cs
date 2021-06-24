@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.Entities;
-using VRage.Game.ModAPI;
 using Sandbox.Game.Entities.Cube;
-using Sandbox.ModAPI;
 using Torch.Commands;
 
 namespace Essentials.Commands
@@ -92,7 +90,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of subtype {subtype}.");
         }
 
@@ -111,7 +109,7 @@ namespace Essentials.Commands
             }
 
             foreach (var x in toRemove)
-                x.CubeGrid.RazeBlock(x.Position);
+                x.CubeGrid?.RemoveBlock(x);
             Context.Respond($"Removed {toRemove.Count} blocks of type {type}.");
         }
 

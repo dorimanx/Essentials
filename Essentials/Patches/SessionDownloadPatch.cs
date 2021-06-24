@@ -58,6 +58,7 @@ namespace Essentials.Patches
 
         private static ITorchSessionManager _sessionManager;
 
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
         [ReflectedMethod(Name = "RaiseClientLeft")]
         private static Action<MyMultiplayerBase, ulong, MyChatMemberStateChangeEnum> _raseClientLeft;
 
@@ -71,7 +72,7 @@ namespace Essentials.Patches
 
         [ReflectedGetter(Name = "m_callback")]
         private static Func<MyReplicationServer, IReplicationServerCallback> _getCallback;
-        
+
         private static readonly TypedObjectPool Pool = new TypedObjectPool();
 
         [ReflectedGetter(Name = "m_sessionComponents")]
@@ -99,6 +100,7 @@ namespace Essentials.Patches
 
         [ReflectedMethod(Name = "SaveInternal")]
         private static Action<MyStorageBase, Stream> _saveInternal;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         private static ITorchSessionManager SessionManager => _sessionManager ?? (_sessionManager = EssentialsPlugin.Instance.Torch.Managers.GetManager<ITorchSessionManager>());
 
@@ -110,6 +112,7 @@ namespace Essentials.Patches
             SessionManager.OverrideModsChanged += OverrideModsChanged;
         }
 
+        [Obsolete]
         public static MyObjectBuilder_World GetClientWorld(EndpointId sender)
         {
             //if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
@@ -251,6 +254,7 @@ namespace Essentials.Patches
         /// </summary>
         /// <param name="sender"></param>
         /// <returns></returns>
+        [Obsolete]
         private static bool PatchGetWorld(EndpointId sender)
         {
             if (!EssentialsPlugin.Instance.Config.EnableClientTweaks)
@@ -372,6 +376,7 @@ namespace Essentials.Patches
         /// </summary>
         /// <param name="steamId"></param>
         /// <returns></returns>
+        [Obsolete]
         private static MyObjectBuilder_Checkpoint GetClientCheckpoint(ulong steamId)
         {
             Log.Info($"Saving checkpoint...");
@@ -461,7 +466,7 @@ namespace Essentials.Patches
 
             foreach (MyPlayer p in m_players.Values)
             {
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = p.Id.SteamId, SerialId = p.Id.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = p.Id.SteamId, SerialId = p.Id.SerialId };
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
                 playerOb.DisplayName = p.DisplayName;
@@ -485,7 +490,7 @@ namespace Essentials.Patches
                 if (m_players.ContainsKey(identityPair.Key))
                     continue;
 
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId };
                 MyIdentity identity = MySession.Static.Players.TryGetIdentity(identityPair.Value);
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
@@ -507,7 +512,7 @@ namespace Essentials.Patches
                     if (m_players.ContainsKey(colorPair.Key) || m_playerIdentityIds.ContainsKey(colorPair.Key))
                         continue;
 
-                    var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId};
+                    var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId };
                     _checkpoint.AllPlayersColors.Dictionary.Add(id, colorPair.Value);
                 }
             }
@@ -553,17 +558,17 @@ namespace Essentials.Patches
                         if (gps.EntityId == 0 || MyEntities.GetEntityById(gps.EntityId) != null)
                         {
                             var builder = new MyObjectBuilder_Gps.Entry
-                                          {
-                                              name = gps.Name,
-                                              description = gps.Description,
-                                              coords = gps.Coords,
-                                              isFinal = gps.DiscardAt == null,
-                                              showOnHud = gps.ShowOnHud,
-                                              alwaysVisible = gps.AlwaysVisible,
-                                              color = gps.GPSColor,
-                                              entityId = gps.EntityId,
-                                              DisplayName = gps.DisplayName
-                                          };
+                            {
+                                name = gps.Name,
+                                description = gps.Description,
+                                coords = gps.Coords,
+                                isFinal = gps.DiscardAt == null,
+                                showOnHud = gps.ShowOnHud,
+                                alwaysVisible = gps.AlwaysVisible,
+                                color = gps.GPSColor,
+                                entityId = gps.EntityId,
+                                DisplayName = gps.DisplayName
+                            };
                             bGps.Entries.Add(builder);
                         }
                     }
