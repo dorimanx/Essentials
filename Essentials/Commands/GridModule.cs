@@ -16,6 +16,11 @@ using VRage.Game;
 using VRage.ObjectBuilders;
 using System.Collections.Concurrent;
 using VRage.Groups;
+using Sandbox.Game.World;
+using System.Collections.Generic;
+using VRage.Network;
+using Sandbox.Engine.Multiplayer;
+using System;
 
 namespace Essentials
 {
@@ -139,8 +144,29 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StaticLarge()
         {
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large).Where(x => x.Projector == null))
-                grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.Projector == null && g.GridSizeEnum == MyCubeSize.Large))
+            {
+                if (grid.BigOwners.Count > 0 && !MySession.Static.Players.IdentityIsNpc(grid.BigOwners.FirstOrDefault()))
+                {
+                    var grids = MyCubeGridGroups.Static.GetGroups(GridLinkTypeEnum.Logical).GetGroupNodes(grid);
+                    grids.SortNoAlloc((x, y) => x.BlocksCount.CompareTo(y.BlocksCount));
+                    grids.Reverse();
+                    grids.SortNoAlloc((x, y) => x.GridSizeEnum.CompareTo(y.GridSizeEnum));
+
+                    // stop the grids.
+                    foreach (var gridtostop in grids)
+                        gridtostop.Physics?.ClearSpeed();
+
+                    // tell to server
+                    grids.First().ConvertToStatic();
+
+                    // tell to client
+                    MyMultiplayer.RaiseEvent(grids.First(), (MyCubeGrid x) => new Action(x.ConvertToStatic), default);
+                    MyMultiplayer.RaiseEvent(grids.First(), (MyCubeGrid x) => new Action(x.ConvertToStatic), MyEventContext.Current.Sender);
+                }
+                else
+                    grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
+            }
         }
 
         [Command("stopall", "Stops all moving grids.")]
