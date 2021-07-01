@@ -139,6 +139,9 @@ namespace Essentials
 
         public static void InsertDiscord(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
         {
+            if (steamID == 0)
+                return;
+
             Log.Info($"DiscordID for {steamID} received from SEDB!... Inserting into player account ({discordID})");
             var AccModule = new PlayerAccountModule();
             var account = AccModule.GetAccount(steamID);
