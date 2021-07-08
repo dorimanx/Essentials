@@ -1,20 +1,11 @@
 ﻿using Newtonsoft.Json;
 using NLog;
-using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Threading.Tasks;
-using Torch.Commands;
-using Torch.Mod;
-using Torch.Mod.Messages;
-using VRage.Game.ModAPI;
 using VRage.GameServices;
-using VRage.Groups;
 using VRage.Network;
 using VRageMath;
 
@@ -116,7 +107,6 @@ namespace Essentials
                 Log.Info("Removed mis-configured values!");
             }
 
-
             Log.Info("Validating player ranks");
             List<PlayerAccountData> PlayerObjectsToUpdate = new List<PlayerAccountData>();
             foreach (PlayerAccountData Player in PlayersAccounts.ToList())
@@ -140,7 +130,10 @@ namespace Essentials
         public static void InsertDiscord(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
         {
             if (steamID == 0)
+            {
+                Log.Info($"Cannont Insert Discord, SteamId is 0");
                 return;
+            }
 
             Log.Info($"DiscordID for {steamID} received from SEDB!... Inserting into player account ({discordID})");
             var AccModule = new PlayerAccountModule();
@@ -169,15 +162,21 @@ namespace Essentials
             {
                 ulong steamid = 0;
                 var steamid_backup = MyEventContext.Current.Sender.Value;
+                System.Net.IPAddress ip;
 
                 if (player == null || player.SteamId == 0)
                     steamid = steamid_backup;
                 else
                     steamid = player.SteamId;
 
-                var state = new MyP2PSessionState();
-                Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(steamid, ref state);
-                var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+                if (steamid != 0)
+                {
+                    var state = new MyP2PSessionState();
+                    Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(steamid, ref state);
+                    ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+                }
+                else
+                    ip = null;
 
                 PlayerAccountData data = new PlayerAccountData();
                 bool found = false;
@@ -185,7 +184,6 @@ namespace Essentials
                 {
                     if (Account.SteamID == steamid)
                     {
-
                         if (Account.IdentityID == 0L && Account.Player != string.Empty)
                         {
                             Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
@@ -210,7 +208,10 @@ namespace Essentials
                 if (!found)
                 {
                     if (player == null)
+                    {
+                        Log.Info($"Cannont Create new account Player is Null");
                         return;
+                    }
 
                     Log.Info($"Creating new account object for {player.Name}");
                     if (steamid != 0)
@@ -224,6 +225,7 @@ namespace Essentials
                     SaveAccountData();
                     return;
                 }
+                Log.Info($"Cannont Create new account for player, no steamid or IP detected, maybe next time.");
             }
             catch (Exception e)
             {
@@ -233,9 +235,11 @@ namespace Essentials
 
         public void CheckIp(Torch.API.IPlayer Player)
         {
-
             if (Player == null)
+            {
+                Log.Info($"Cannont check for IP, player in Null");
                 return;
+            }
 
             ulong steamid = Player.SteamId;
             var steamid_backup = MyEventContext.Current.Sender.Value;
