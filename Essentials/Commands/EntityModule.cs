@@ -26,21 +26,16 @@ namespace Essentials
     public class EntityModule : CommandModule
     {
         [ReflectedGetter(Name = "m_clientStates")]
-        private static Func<MyReplicationServer, IDictionary> _clientStates;
+        public static Func<MyReplicationServer, IDictionary> _clientStates;
 
         [ReflectedGetter(TypeName = "VRage.Network.MyClient, VRage", Name = "Replicables")]
-        private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
+        public static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
 
         [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new string[] { null, "VRage.Network.MyClient, VRage", null })]
-        private static Action<MyReplicationServer, IMyReplicable, object, bool> _removeForClient;
+        public static Action<MyReplicationServer, IMyReplicable, object, bool> _removeForClient;
 
         [ReflectedMethod(Name = "ForceReplicable")]
-        private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
-
-        public static Func<MyReplicationServer, IDictionary> ClientStates { get => _clientStates; set => _clientStates = value; }
-        public static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> Replicables { get => _replicables; set => _replicables = value; }
-        public static Action<MyReplicationServer, IMyReplicable, object, bool> RemoveForClient { get => _removeForClient; set => _removeForClient = value; }
-        public static Action<MyReplicationServer, IMyReplicable, Endpoint> ForceReplicable { get => _forceReplicable; set => _forceReplicable = value; }
+        public static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
 
         private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
 
@@ -52,6 +47,9 @@ namespace Essentials
                 return;
 
             var steamid = Context.Player.SteamUserId;
+            if (steamid < 1)
+                return;
+
             if (_commandtimeout.TryGetValue(steamid, out DateTime lastcommand))
             {
                 TimeSpan difference = DateTime.Now - lastcommand;
@@ -65,32 +63,31 @@ namespace Essentials
             else
                 _commandtimeout.Add(steamid, DateTime.Now);
 
-            var playerEndpoint = new Endpoint(Context.Player.SteamUserId, 0);
-            var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
-            object clientData;
-
             try
             {
-                clientData = ClientStates(replicationServer)[playerEndpoint];
+                var playerEndpoint = new Endpoint(Context.Player.SteamUserId, 0);
+                var replicationServer = (MyReplicationServer)MyMultiplayer.ReplicationLayer;
+                var clientDataDict = _clientStates.Invoke(replicationServer);
+                object clientData = clientDataDict[playerEndpoint];
+
+                var clientReplicables = _replicables.Invoke(clientData);
+                var replicableList = new List<IMyReplicable>(clientReplicables.Count);
+
+                replicableList.AddRange(from pair in clientReplicables
+                                        select pair.Key);
+
+                foreach (var replicable in replicableList)
+                {
+                    _removeForClient.Invoke(replicationServer, replicable, clientData, true);
+                    _forceReplicable.Invoke(replicationServer, replicable, playerEndpoint);
+                }
+                Context.Respond($"Forced replication of {replicableList.Count} entities.");
             }
             catch
             {
+                // Avoid Client crash if some entitie is null.
                 return;
             }
-
-            var lists = new List<IMyReplicable>(Replicables(clientData).Count);
-
-            foreach (var item in Replicables(clientData))
-            {
-                lists.Add(item.Key);
-            }
-            foreach (var replicable in lists)
-            {
-                RemoveForClient(replicationServer, replicable, clientData, arg4: true);
-                ForceReplicable(replicationServer, replicable, playerEndpoint);
-            }
-
-            Context.Respond($"Forced replication of {lists.Count} entities.");
         }
 
         [Command("stop", "Stops an entity from moving")]
