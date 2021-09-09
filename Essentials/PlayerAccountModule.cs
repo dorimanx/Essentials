@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using NLog;
+using Sandbox.Engine.Multiplayer;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -174,9 +175,21 @@ namespace Essentials
                     var state = new MyP2PSessionState();
                     Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(steamid, ref state);
                     ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+                    if (ip == null)
+                        return;
                 }
                 else
                     ip = null;
+
+                // Disconnect client with Ip 0.0.0.0 to prevent SteamLib Crash.
+                if (ip != null)
+                {
+                    if (ip.ToString() == "0.0.0.0")
+                    {
+                        MyMultiplayer.Static.DisconnectClient(steamid);
+                        Log.Info($"Detected IP: {ip} from SteamID {steamid} Client was disconnected");
+                    }
+                }
 
                 PlayerAccountData data = new PlayerAccountData();
                 bool found = false;
@@ -220,16 +233,19 @@ namespace Essentials
                         data.SteamID = steamid_backup;
                     data.Player = player.Name;
                     data.Rank = EssentialsPlugin.Instance.Config.DefaultRank;
-                    data.KnownIps.Add(ip.ToString());
+                    if (ip != null)
+                        data.KnownIps.Add(ip.ToString());
                     PlayersAccounts.Add(data);
                     SaveAccountData();
                     return;
                 }
-                Log.Info($"Cannont Create new account for player, no steamid or IP detected, maybe next time.");
+                if (steamid == 0)
+                    Log.Info($"Cannont Create new account for player, no steamid or IP detected, maybe next time.");
             }
             catch (Exception e)
             {
-                Log.Error($"Exception creating account for {player.Name} {e.ToString()}");
+                Log.Error($"Creating NEW account for {player.Name}, Player was not found in List.");
+                //Log.Error($"Exception creating account for {player.Name} {e.ToString()}");
             }
         }
 
