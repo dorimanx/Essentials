@@ -3,15 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
 using NLog;
-using Torch;
-using Torch.API;
 using Torch.Server.ViewModels;
 using Sandbox.Game.World;
 using Sandbox.Game.Multiplayer;
 using Sandbox.Game.Entities;
-using Sandbox.ModAPI;
-using Torch.Session;
-using Torch.Managers;
 using VRage.Game.ModAPI;
 using static Essentials.Gtl;
 
@@ -28,7 +23,6 @@ namespace Essentials
         private Timer _timer;
         private readonly Dictionary<AutoCommand, DateTime> _simSpeedCheck = new Dictionary<AutoCommand, DateTime>();
 
-        [Obsolete]
         public void Start()
         {
             _timer = new Timer(1000);
@@ -37,7 +31,6 @@ namespace Essentials
             _timer.Start();
         }
 
-        [Obsolete]
         private bool CanRun(AutoCommand command)
         {
             if (MySession.Static?.Ready == false) return false;
@@ -128,11 +121,9 @@ namespace Essentials
                 default:
                     throw new Exception("fuck it");
             }
-
             return false;
         }
 
-        [Obsolete]
         private void TimerElapsed(object sender, ElapsedEventArgs e)
         {
             foreach (var command in EssentialsPlugin.Instance.Config.AutoCommands)

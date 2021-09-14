@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using NLog;
+//using NLog;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Multiplayer;
@@ -25,7 +25,7 @@ namespace Essentials.Commands
 {
     public class WorldModule : CommandModule
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        //private static Logger _log = LogManager.GetCurrentClassLogger();
 
         private static readonly FieldInfo GpsDicField = typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -156,15 +156,12 @@ namespace Essentials.Commands
             Context.Respond($"Wiped {count} reputations");
         }
 
-
         [Command("faction clean", "Removes factions with fewer than the given number of players.")]
         public void CleanFactions(int memberCount = 1)
         {
             int count = CleanFaction_Internal(memberCount);
-
             Context.Respond($"Removed {count} factions with fewer than {memberCount} members.");
         }
-
 
         [Command("faction remove", "removes faction by tag name")]
         [Permission(MyPromoteLevel.Admin)]
@@ -182,11 +179,13 @@ namespace Essentials.Commands
                 Context.Respond($"{tag} is not a faction on this server");
                 return;
             }
+
             foreach (var player in fac.Members)
             {
                 if (!MySession.Static.Players.HasIdentity(player.Key)) continue;
                 fac.KickMember(player.Key);
             }
+
             RemoveFaction(fac);
             Context.Respond(MySession.Static.Factions.FactionTagExists(tag)
                 ? $"{tag} removal failed"
@@ -197,7 +196,6 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void FactionInfo()
         {
-
             StringBuilder sb = new StringBuilder();
 
             foreach (var factionID in MySession.Static.Factions)
@@ -211,6 +209,7 @@ namespace Essentials.Commands
                     sb.AppendLine($"{faction.Tag} - {memberCount} NPC found in this faction");
                     continue;
                 }
+
                 sb.AppendLine($"{faction.Tag} - {memberCount} players in this faction");
                 foreach (var player in faction?.Members)
                 {
@@ -219,12 +218,11 @@ namespace Essentials.Commands
                     sb.AppendLine($"{MySession.Static?.Players?.TryGetIdentity(player.Value.PlayerId).DisplayName}");
                 }
             }
+
             if (Context.Player == null)
                 Context.Respond(sb.ToString());
             else if (Context?.Player?.SteamUserId > 0)
-            {
                 ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
-            }
         }
 
         private static void RemoveEmptyFactions()
@@ -249,7 +247,6 @@ namespace Essentials.Commands
                         continue;
 
                     validmembers++;
-
                     if (validmembers >= memberCount)
                         break;
                 }
@@ -260,7 +257,6 @@ namespace Essentials.Commands
                 RemoveFaction(faction.Value);
                 result++;
             }
-
             return result;
         }
 
@@ -297,7 +293,10 @@ namespace Essentials.Commands
             //        (Action<MyFactionStateChange, long, long, long, long>) Delegate.CreateDelegate(typeof(Action<MyFactionStateChange, long, long, long, long>), _factionStateChangeReq),
             //    MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, faction.FounderId, faction.FounderId);
             NetworkManager.RaiseStaticEvent(_factionChangeSuccessInfo, MyFactionStateChange.RemoveFaction, faction.FactionId, faction.FactionId, 0L, 0L);
-            if (!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag)) return;
+
+            if (!MyAPIGateway.Session.Factions.FactionTagExists(faction.Tag))
+                return;
+
             MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
         }
 
@@ -306,9 +305,9 @@ namespace Essentials.Commands
             int count = 0;
             foreach (var entity in MyEntities.GetEntities())
             {
-                var grid = entity as MyCubeGrid;
-                if (grid == null)
+                if (!(entity is MyCubeGrid grid))
                     continue;
+
                 var owner = grid.BigOwners.FirstOrDefault();
                 var share = owner == 0 ? MyOwnershipShareModeEnum.All : MyOwnershipShareModeEnum.Faction;
                 foreach (var block in grid.GetFatBlocks())
@@ -336,6 +335,7 @@ namespace Essentials.Commands
             {
                 if (!(entity is MyCubeGrid grid))
                     continue;
+
                 validIdentities.UnionWith(grid.SmallOwners);
             }
 
@@ -357,9 +357,7 @@ namespace Essentials.Commands
                 }
 
                 if (validIdentities.Contains(identity.IdentityId))
-                {
                     continue;
-                }
 
                 RemoveFromFaction_Internal(identity);
                 MySession.Static.Players.RemoveIdentity(identity.IdentityId);
@@ -374,9 +372,7 @@ namespace Essentials.Commands
             count += CleanFaction_Internal();
 
             //cleanup reputations
-
             count += CleanupReputations();
-
 
             //Keen, for the love of god why is everything about GPS internal.
             var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
@@ -560,27 +556,23 @@ namespace Essentials.Commands
                     result++;
                 }
             }
-
             return result;
-
         }
+
         private static int CleanupReputations()
         {
             var collection = _relationsGet(MySession.Static.Factions);
             var collection2 = _playerRelationsGet(MySession.Static.Factions);
-
-
             var validIdentities = new HashSet<long>();
 
             //find all identities owning a block
             foreach (var entity in MyEntities.GetEntities())
             {
-                var grid = entity as MyCubeGrid;
-                if (grid == null)
+                if (!(entity is MyCubeGrid grid))
                     continue;
+
                 validIdentities.UnionWith(grid.SmallOwners);
             }
-
 
             //find online identities
             foreach (var online in MySession.Static.Players.GetOnlinePlayers())
@@ -591,9 +583,7 @@ namespace Essentials.Commands
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
                 if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
-                {
                     validIdentities.Add(identity.IdentityId);
-                }
             }
 
             //Add Factions with at least one member to valid identities
@@ -602,11 +592,9 @@ namespace Essentials.Commands
                 validIdentities.Add(faction.Key);
             }
 
-
             //might not be necessary, but just in case
             validIdentities.Remove(0);
             var result = 0;
-
             var collection0List = collection.Keys.ToList();
             var collection1List = collection2.Keys.ToList();
 
@@ -626,11 +614,9 @@ namespace Essentials.Commands
                 result++;
             }
 
-
             //_relationsSet.Invoke(MySession.Static.Factions,collection);
             //_playerRelationsSet.Invoke(MySession.Static.Factions,collection2);
             return result;
         }
-
     }
 }

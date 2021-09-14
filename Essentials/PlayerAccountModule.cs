@@ -242,10 +242,9 @@ namespace Essentials
                 if (steamid == 0)
                     Log.Info($"Cannont Create new account for player, no steamid or IP detected, maybe next time.");
             }
-            catch (Exception e)
+            catch
             {
                 Log.Error($"Creating NEW account for {player.Name}, Player was not found in List.");
-                //Log.Error($"Exception creating account for {player.Name} {e.ToString()}");
             }
         }
 
@@ -292,8 +291,8 @@ namespace Essentials
 
         public PlayerAccountData GetAccount(ulong steamID)
         {
-            PlayerAccountData data = new PlayerAccountData();
-            data = null;
+            _ = new PlayerAccountData();
+            PlayerAccountData data = null;
             foreach (var Account in PlayersAccounts)
             {
                 if (Account.SteamID == steamID)

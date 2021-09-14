@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -192,7 +192,6 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOff(string name)
         {
-
             if (string.IsNullOrEmpty(name))
                 return;
 
@@ -207,6 +206,7 @@ namespace Essentials
                 Context.Respond("Command do not work on characters.");
                 return;
             }
+
             IMyCubeGrid grid = entity as MyCubeGrid;
             var blocks = new List<IMySlimBlock>();
             grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
@@ -219,14 +219,12 @@ namespace Essentials
                 item.Enabled = false;
             }
             Context.Respond($"Entity '{entity.DisplayName}' powered off");
-
         }
 
         [Command("poweron", "Power on entities with the given text in their name.")]
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void PowerOn(string name)
         {
-
             if (string.IsNullOrEmpty(name))
                 return;
 
@@ -241,6 +239,7 @@ namespace Essentials
                 Context.Respond("Command do not work on characters.");
                 return;
             }
+
             IMyCubeGrid grid = entity as MyCubeGrid;
             var blocks = new List<IMySlimBlock>();
             grid.GetBlocks(blocks, f => f.FatBlock != null && f.FatBlock is IMyFunctionalBlock
@@ -248,31 +247,25 @@ namespace Essentials
             f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
             f.FatBlock.BlockDefinition.TypeId == typeof(MyObjectBuilder_SolarPanel)));
             var list = blocks.Select(f => (IMyFunctionalBlock)f.FatBlock).Where(f => !f.Enabled).ToArray();
+
             foreach (var item in list)
             {
                 item.Enabled = true;
             }
             Context.Respond($"Entity '{entity.DisplayName}' powered on");
-
         }
 
         [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
         public void Eject(string playerName)
         {
-
             if (playerName.ToLower() == "all")
-            {
                 EjectAllPlayers();
-            }
             else
-            {
                 EjectSinglePlayer(playerName);
-            }
         }
 
         private void EjectAllPlayers()
         {
-
             int ejectedPlayersCount = 0;
 
             foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().ToList())
@@ -286,13 +279,11 @@ namespace Essentials
                     }
                 }
             }
-
             Context.Respond($"Ejected '{ejectedPlayersCount}' players from their seats.");
         }
 
         private void EjectSinglePlayer(string playerName)
         {
-
             /* We check first if the player is among the online players before looping over all grids for nothing. */
             var player = Utilities.GetPlayerByNameOrId(playerName);
             if (player != null)
@@ -304,9 +295,7 @@ namespace Essentials
                     Context.Respond($"Player '{playerName}' ejected.");
                 }
                 else
-                {
                     Context.Respond("Player not seated.");
-                }
 
                 return;
             }
@@ -315,9 +304,8 @@ namespace Essentials
             {
                 foreach (var controller in grid.GetFatBlocks<MyShipController>())
                 {
-                    var pilot = controller.Pilot;
 
-                    if (pilot != null && pilot.DisplayName == playerName)
+                    if ((controller?.Pilot) != null && (controller?.Pilot).DisplayName == playerName)
                     {
                         controller.Use();
 

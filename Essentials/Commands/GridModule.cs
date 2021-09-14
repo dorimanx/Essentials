@@ -31,7 +31,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void SetOwner(string gridName, string playerName)
         {
-            var firstArg = Context.Args.FirstOrDefault();
+            _ = Context.Args.FirstOrDefault();
             Utilities.TryGetEntityByNameOrId(gridName, out IMyEntity entity);
 
             if (!(entity is IMyCubeGrid grid))
@@ -40,9 +40,8 @@ namespace Essentials
                 return;
             }
 
-            var secondArg = Context.Args.ElementAtOrDefault(1);
-            long identityId;
-            if (!long.TryParse(playerName, out identityId))
+            _ = Context.Args.ElementAtOrDefault(1);
+            if (!long.TryParse(playerName, out long identityId))
             {
                 var player = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerBase>().GetPlayerByName(playerName);
                 if (player == null)
@@ -188,13 +187,11 @@ namespace Essentials
 
             foreach (var entity in MyEntities.GetEntities())
             {
-                var grid = entity as MyCubeGrid;
-                if (grid == null || grid.Projector != null)
+                if (!(entity is MyCubeGrid grid) || grid.Projector != null)
                     continue;
 
                 if (grid.BigOwners.Contains(id))
                 {
-
                     sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
                     if (EssentialsPlugin.Instance.Config.MarkerShowPosition)
                     {

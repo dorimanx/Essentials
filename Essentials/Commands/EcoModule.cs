@@ -65,7 +65,7 @@ namespace Essentials.Commands
                 foreach (var p in MySession.Static.Players.GetAllPlayers())
                 {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
-                    long balance = MyBankingSystem.GetBalance(IdentityID);
+                    //long balance = MyBankingSystem.GetBalance(IdentityID);
                     MyBankingSystem.ChangeBalance(IdentityID, -amount);
                     ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
                 }
@@ -152,7 +152,7 @@ namespace Essentials.Commands
             foreach (var value in sorted)
             {
                 var test = MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key);
-                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key).ToString()} - Balance: {value.Value.ToString()}");
+                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key)} - Balance: {value.Value}");
             }
 
             if (Context.Player == null)

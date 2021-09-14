@@ -183,9 +183,8 @@ namespace Essentials.Commands
 
         private static Dictionary<ulong, DateTime> _muted;
         private Timer _muteTimer;
-#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
-        private IChatManagerServer _chatManager;
-#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
+        public IChatManagerServer _chatManager;
+
         private IChatManagerServer ChatManager => _chatManager ?? (EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>());
         private List<ulong> _removeCache;
 
