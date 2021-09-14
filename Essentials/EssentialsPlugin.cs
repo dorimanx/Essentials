@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Remoting.Contexts;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -28,7 +27,6 @@ using VRage.Game.Entity;
 using VRageMath;
 using Newtonsoft.Json;
 using SpaceEngineers.Game.World;
-using VRage.Network;
 
 namespace Essentials
 {
@@ -51,6 +49,7 @@ namespace Essentials
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
         RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
+        private static bool _initilized = false;
 
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new PropertyGrid() { DataContext = Config/*, IsEnabled = false*/});
@@ -61,47 +60,37 @@ namespace Essentials
         }
 
         /// <inheritdoc />
-        [Obsolete]
-#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
+
         public override void Init(ITorchBase torch)
-#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             base.Init(torch);
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
-            ConvertScheduleTime();
+
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
+
             homeDataPath = Path.Combine(StoragePath, "players.json");
             if (!File.Exists(homeDataPath))
-            {
                 File.Create(homeDataPath);
-            }
-
-
 
             rankDataPath = Path.Combine(StoragePath, "ranks.json");
             if (!File.Exists(rankDataPath))
-            {
                 File.Create(rankDataPath);
-            }
-
-
 
             Instance = this;
             _pm = torch.Managers.GetManager<PatchManager>();
             _context = _pm.AcquireContext();
             SessionDownloadPatch.Patch(_context);
 
-            if (Config.CutGameTags)
-                GameTagsPatch.Patch(_context);
+            if (Instance.Config.EnableRanks)
+                ChatMessagePatch.Patch(_context);
         }
 
-        [Obsolete]
         private void SessionChanged(ITorchSession session, TorchSessionState state)
         {
             var mpMan = Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();
@@ -145,13 +134,20 @@ namespace Essentials
                                                });
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
+                    _initilized = true;
                     break;
+
                 case TorchSessionState.Unloading:
-                    Log.Info("Unloading rank data into JSON");
-                    RanksAndPermissions.SaveRankData();
-                    mpMan.PlayerLeft -= ResetMotdOnce;
-                    mpMan.PlayerJoined -= MotdOnce;
-                    MyEntities.OnEntityAdd -= EntityAdded;
+                    if (_initilized)
+                    {
+                        //Dont try and remove these unless server was actually fully initlized
+                        Log.Info("Unloading rank data into JSON");
+                        RanksAndPermissions.SaveRankData();
+                        mpMan.PlayerLeft -= ResetMotdOnce;
+                        mpMan.PlayerJoined -= MotdOnce;
+                        MyEntities.OnEntityAdd -= EntityAdded;
+                    }
+
                     _bagTracker.Clear();
                     _removalTracker.Clear();
                     break;
@@ -166,8 +162,7 @@ namespace Essentials
             if (Config.BackpackLimit < 0)
                 return;
 
-            var b = myEntity as MyInventoryBagEntity;
-            if (b == null)
+            if (!(myEntity is MyInventoryBagEntity b))
                 return;
 
             if (Config.BackpackLimit == 0)
@@ -189,7 +184,6 @@ namespace Essentials
         public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
         {
             PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
-
         }
 
         private void ProcessBags()
@@ -215,6 +209,7 @@ namespace Essentials
                     _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(rm, DateTime.Now + TimeSpan.FromSeconds(30)));
                 }
             }
+
             if (_removalTracker.Count > 0)
             {
                 var b = _removalTracker.Peek();
@@ -352,27 +347,11 @@ namespace Essentials
         }
 
         /// <inheritdoc />
-        [Obsolete]
-#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
         public override void Dispose()
-#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
         {
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged -= SessionChanged;
             _sessionManager = null;
-        }
-
-        //Todo Remove This method next update
-        public void ConvertScheduleTime()
-        {
-            foreach (var command in _config.Data.AutoCommands)
-            {
-                if (command.ScheduledTime == TimeSpan.Zero.ToString() || command.CommandTrigger != Trigger.Scheduled) continue;
-                command.Interval = command.ScheduledTime;
-                command.ScheduledTime = TimeSpan.Zero.ToString();
-            }
-            _config.Save();
-
         }
     }
 }
