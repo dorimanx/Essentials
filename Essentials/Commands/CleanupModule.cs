@@ -46,39 +46,53 @@ namespace Essentials.Commands
         [Command("delete", "Delete grids matching the given conditions")]
         public void Delete()
         {
-            var count = 0;
-            foreach (var grid in ScanConditions(Context.Args))
+            try
             {
-                if (grid != null && !grid.MarkedForClose && !grid.Closed)
+                var count = 0;
+                foreach (var grid in ScanConditions(Context.Args))
                 {
-                    if (grid.EntityId != 0L && grid.DisplayName != null)
-                        Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
+                    if (grid != null && !grid.MarkedForClose && !grid.Closed)
+                    {
+                        if (grid.EntityId != 0L && grid.DisplayName != null)
+                            Log.Info($"Deleting grid: {grid.EntityId}: {grid.DisplayName}");
 
-                    EjectPilots(grid);
-                    grid.Close();
-                    count++;
+                        EjectPilots(grid);
+                        grid.Close();
+                        count++;
+                    }
                 }
+                Context.Respond($"Deleted {count} grids matching the given conditions.");
+                Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
             }
-            Context.Respond($"Deleted {count} grids matching the given conditions.");
-            Log.Info($"Cleanup deleted {count} grids matching conditions {string.Join(", ", Context.Args)}");
+            catch
+            {
+                Log.Info($"Cleanup Delete Failed, Server Crash was avoided.");
+            }
         }
 
         [Command("delete floatingobjects", "deletes floating objects")]
         public void FlObjDelete()
         {
-            var count = 0;
-            foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
+            try
             {
-                if (floater != null)
+                var count = 0;
+                foreach (var floater in MyEntities.GetEntities().OfType<MyFloatingObject>())
                 {
-                    if (floater.DisplayName != null)
-                        Log.Info($"Deleting floating object: {floater.DisplayName}");
-                    floater.Close();
-                    count++;
+                    if (floater != null)
+                    {
+                        if (floater.DisplayName != null)
+                            Log.Info($"Deleting floating object: {floater.DisplayName}");
+                        floater.Close();
+                        count++;
+                    }
                 }
+                Context.Respond($"Deleted {count} floating objects.");
+                Log.Info($"Cleanup deleted {count} floating objects");
             }
-            Context.Respond($"Deleted {count} floating objects.");
-            Log.Info($"Cleanup deleted {count} floating objects");
+            catch
+            {
+                Log.Info($"Cleanup floatingobjects Failed! Server Crash was avoided");
+            }
         }
 
         [Command("help", "Lists all cleanup conditions.")]
@@ -123,23 +137,18 @@ namespace Essentials.Commands
             {
                 string parameter;
                 if (i + 1 >= args.Count)
-                {
                     parameter = null;
-                }
                 else
-                {
                     parameter = args[i + 1];
-                }
 
                 var arg = args[i];
 
                 if (parameter != null)
                 {
                     //parameter is the name of a command. Assume this command requires no parameters
-                    if (_conditionLookup.Any(c => parameter.Equals(c.Command, StringComparison.CurrentCultureIgnoreCase) || parameter.Equals(c.InvertCommand, StringComparison.CurrentCultureIgnoreCase)))
-                    {
+                    if (_conditionLookup.Any(c => parameter.Equals(c.Command, StringComparison.CurrentCultureIgnoreCase) ||
+                            parameter.Equals(c.InvertCommand, StringComparison.CurrentCultureIgnoreCase)))
                         parameter = null;
-                    }
                     //next string is a parameter, so pass it to the condition and skip it next loop
                     else
                         i++;
@@ -313,23 +322,29 @@ namespace Essentials.Commands
         [Condition("insideplanet", helpText: "Finds grids that are trapped inside planets.")]
         public bool InsidePlanet(MyCubeGrid grid)
         {
-            var s = grid.PositionComp.WorldVolume;
-            var voxels = new List<MyVoxelBase>();
-            MyGamePruningStructure.GetAllVoxelMapsInSphere(ref s, voxels);
-
-            if (!voxels.Any())
-                return false;
-
-            foreach (var v in voxels)
+            try
             {
-                if (!(v is MyPlanet planet))
-                    continue;
+                var s = grid.PositionComp.WorldVolume;
+                var voxels = new List<MyVoxelBase>();
+                MyGamePruningStructure.GetAllVoxelMapsInSphere(ref s, voxels);
 
-                var dist2center = Vector3D.DistanceSquared(s.Center, planet.PositionComp.WorldVolume.Center);
-                if (dist2center <= planet.MaximumRadius * planet.MaximumRadius / 2f)
-                    return true;
+                if (!voxels.Any())
+                    return false;
+
+                foreach (var v in voxels)
+                {
+                    if (!(v is MyPlanet planet))
+                        continue;
+
+                    var dist2center = Vector3D.DistanceSquared(s.Center, planet.PositionComp.WorldVolume.Center);
+                    if (dist2center <= planet.MaximumRadius * planet.MaximumRadius / 2f)
+                        return true;
+                }
             }
-
+            catch
+            {
+                Log.Info($"Cleanup insideplanet Failed! Server Crash was avoided");
+            }
             return false;
         }
 
@@ -359,21 +374,14 @@ namespace Essentials.Commands
             long identityId;
 
             if (string.Compare(str, "nobody", StringComparison.InvariantCultureIgnoreCase) == 0)
-            {
                 return grid.BigOwners.Count == 0;
-            }
 
             if (string.Compare(str, "npc", StringComparison.Ordinal) == 0)
-            {
-                return grid.BigOwners.Count > 0 &&
-                       MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
-            }
+                return grid.BigOwners.Count > 0 && MySession.Static.Factions.IsNpcFaction(grid.BigOwners.FirstOrDefault());
 
 
             if (string.Compare(str, "pirates", StringComparison.InvariantCultureIgnoreCase) == 0)
-            {
                 identityId = MyPirateAntennas.GetPiratesId();
-            }
             else
             {
                 var player = Utilities.GetIdentityByNameOrIds(str);
@@ -382,18 +390,14 @@ namespace Essentials.Commands
                     if (long.TryParse(str, out long NPCId))
                     {
                         if (MySession.Static.Players.IdentityIsNpc(NPCId))
-                        {
                             return grid.BigOwners.Contains(NPCId);
-                        }
                     }
                     return false;
                 }
                 identityId = player.IdentityId;
             }
-
             return grid.BigOwners.Contains(identityId);
         }
-
 
         [Condition("hastype", "notype", "Finds grids containing blocks of the given type.")]
         public bool BlockType(MyCubeGrid grid, string str)
@@ -463,11 +467,13 @@ namespace Essentials.Commands
                     context.Respond($"Condition does not accept an argument. Cannot continue!");
                     return null;
                 }
+
                 if (string.IsNullOrEmpty(arg) && Parameter != null && !Parameter.HasDefaultValue)
                 {
                     context.Respond($"Condition requires an argument! {Parameter.ParameterType.Name}: {Parameter.Name} Not supplied, cannot continue!");
                     return null;
                 }
+
                 if (Parameter != null && !string.IsNullOrEmpty(arg))
                 {
                     if (!arg.TryConvert(Parameter.ParameterType, out object val))
@@ -479,9 +485,7 @@ namespace Essentials.Commands
                     result = (bool)_method.Invoke(module, new[] { grid, val });
                 }
                 else
-                {
                     result = (bool)_method.Invoke(module, new object[] { grid });
-                }
 
                 return result != invert;
             }
