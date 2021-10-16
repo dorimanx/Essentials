@@ -433,7 +433,7 @@ namespace Essentials.Commands
         {
             if (days <= 0)
             {
-                Context.Respond($"Input number of days player have not logged on in");
+                Context?.Respond($"Input number of days player have not logged on in");
                 return;
             }
 
@@ -449,6 +449,9 @@ namespace Essentials.Commands
 
             foreach (var identity in idents)
             {
+                if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
+
                 AllIdentities.Add(identity.IdentityId);
 
                 if (identity.LastLoginTime < cutoff)
@@ -463,8 +466,6 @@ namespace Essentials.Commands
                 if (AllIdentities.Count > 0 && !AllIdentities.ToList().Contains(id))
                     LostidCache.Add(id);
             }
-            count += idCache.Count;
-            countnotexisting += LostidCache.Count;
 
             // delete requested old gps data for existing Identities
             if (idCache.Count > 0)
@@ -486,12 +487,15 @@ namespace Essentials.Commands
                 }
             }
 
+            count += idCache.Count;
+            countnotexisting += LostidCache.Count;
+
             idCache.Clear();
             OldIdentities.Clear();
             LostidCache.Clear();
             AllIdentities.Clear();
 
-            Context.Respond($"Removed {count} old GPS Junk for existing players that have not logged on in {days} days, and {countnotexisting} for no longer existing players.");
+            Context?.Respond($"Removed {count} old GPS Junk for existing players that have not logged on in {days} days, and {countnotexisting} for no longer existing players.");
         }
 
         [Command("bank clean", "Cleans up old bank accounts from the sandbox file, for identities that have not logged on in X days")]
@@ -500,11 +504,12 @@ namespace Essentials.Commands
         {
             if (days <= 0)
             {
-                Context.Respond($"Input number of days player have not logged on in");
+                Context?.Respond($"Input number of days player have not logged on in");
                 return;
             }
 
             int count = 0;
+            int Lostcount = 0;
             var OldIdentities = new HashSet<long>();
             var AllIdentities = new HashSet<long>();
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
@@ -512,6 +517,9 @@ namespace Essentials.Commands
 
             foreach (var identity in idents)
             {
+                if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
+
                 AllIdentities.Add(identity.IdentityId);
 
                 if (identity.LastLoginTime < cutoff)
@@ -523,14 +531,167 @@ namespace Essentials.Commands
                 foreach (var id in OldIdentities.ToList())
                 {
                     MyBankingSystem.RemoveAccount_Clients(id);
+                    count++;
                 }
             }
 
-            count += OldIdentities.Count;
+            if (AllIdentities.Count > 0)
+            {
+                foreach (var id in AllIdentities.ToList())
+                {
+                    if (!AllIdentities.ToList().Contains(id))
+                    {
+                        MyBankingSystem.RemoveAccount_Clients(id);
+                        Lostcount++;
+                    }
+                }
+            }
 
             OldIdentities.Clear();
+            AllIdentities.Clear();
 
-            Context.Respond($"Removed {count} old Bank Accounts for existing players that have not logged on in {days} days.");
+            Context?.Respond($"Removed {count} old Bank Accounts for existing players that have not logged on in {days} days, and {Lostcount} for no longer existing players.");
+        }
+
+        [Command("reputation clean", "Cleans up old reputations from the sandbox file, for identities that have not logged on in X days")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanReputationSandbox(int days)
+        {
+            if (days <= 0)
+            {
+                Context?.Respond($"Input number of days player have not logged on in");
+                return;
+            }
+
+            int count = 0;
+            int countnotexisting = 0;
+            var OldIdentities = new HashSet<long>();
+            var AllIdentities = new HashSet<long>();
+            var OldPlayersFactionIDs = new HashSet<long>();
+            var AllPlayersFactionIDs = new HashSet<long>();
+            var idCache = new HashSet<MyFactionCollection.MyRelatablePair>();
+            var LostidCache = new HashSet<MyFactionCollection.MyRelatablePair>();
+            var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+
+            var collection0 = _relationsGet(MySession.Static.Factions);
+            var collection1 = _playerRelationsGet(MySession.Static.Factions);
+            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+
+            foreach (var identity in idents)
+            {
+                if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
+
+                AllIdentities.Add(identity.IdentityId);
+
+                if (identity.LastLoginTime < cutoff)
+                    OldIdentities.Add(identity.IdentityId);
+            }
+
+            foreach (var PlayerID in OldIdentities)
+            {
+                var PlayerFaction = MySession.Static.Factions.TryGetPlayerFaction(PlayerID);
+                if (PlayerFaction != null && PlayerFaction.FactionId > 0 && PlayerFaction.Members.Count == 1)
+                    OldPlayersFactionIDs.Add(PlayerFaction.FactionId);
+            }
+
+            foreach (var PlayerID in AllIdentities)
+            {
+                var PlayerFaction = MySession.Static.Factions.TryGetPlayerFaction(PlayerID);
+                if (PlayerFaction != null && PlayerFaction.FactionId > 0 && PlayerFaction.Members.Count == 1)
+                    AllPlayersFactionIDs.Add(PlayerFaction.FactionId);
+            }
+
+            // Find by Faction to faction list.
+            foreach (var pair in collection0.Keys.ToList())
+            {
+                if (OldPlayersFactionIDs.Count > 0 && OldPlayersFactionIDs.ToList().Contains(pair.RelateeId1))
+                    idCache.Add(pair);
+
+                if (AllPlayersFactionIDs.Count > 0 && !AllPlayersFactionIDs.ToList().Contains(pair.RelateeId1))
+                    LostidCache.Add(pair);
+            }
+
+            // delete requested old reputation data for existing Identities
+            if (idCache.Count > 0)
+            {
+                foreach (var pair in idCache)
+                {
+                    collection0.Remove(pair);
+                }
+            }
+
+            // delete existing old reputation data for not existing Identities
+            if (LostidCache.Count > 0)
+            {
+                foreach (var Lostpair in LostidCache)
+                {
+                    collection0.Remove(Lostpair);
+                }
+            }
+
+            count += idCache.Count;
+            countnotexisting += LostidCache.Count;
+
+            idCache.Clear();
+            LostidCache.Clear();
+
+            // Find by Player to Faction List.
+            foreach (var pair in collection1.Keys.ToList())
+            {
+                if (OldIdentities.Count > 0 && OldIdentities.ToList().Contains(pair.RelateeId1))
+                    idCache.Add(pair);
+
+                if (AllIdentities.Count > 0 && !AllIdentities.ToList().Contains(pair.RelateeId1))
+                    LostidCache.Add(pair);
+            }
+
+            // delete requested old reputation data for existing Identities
+            if (idCache.Count > 0)
+            {
+                foreach (var pair in idCache)
+                {
+                    collection1.Remove(pair);
+                }
+            }
+
+            // delete existing old reputation data for not existing Identities
+            if (LostidCache.Count > 0)
+            {
+                foreach (var Lostpair in LostidCache)
+                {
+                    collection1.Remove(Lostpair);
+                }
+            }
+
+            count += idCache.Count;
+            countnotexisting += LostidCache.Count;
+
+            idCache.Clear();
+            OldIdentities.Clear();
+            LostidCache.Clear();
+            AllIdentities.Clear();
+            AllPlayersFactionIDs.Clear();
+            OldPlayersFactionIDs.Clear();
+
+            Context?.Respond($"Removed {count} old Reputation Junk for existing players that have not logged on in {days} days, and {countnotexisting} for no longer existing players.");
+        }
+
+        [Command("oldjunk clean", "Cleans up old reputations/gps/banks from the sandbox file, for identities that have not logged on in X days")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
+        public void CleanJunkSandbox(int days)
+        {
+            if (days <= 0)
+            {
+                Context?.Respond($"Input number of days player have not logged on in");
+                return;
+            }
+
+            CleanGPSSandbox(days);
+            CleanSandboxBankAccounts(days);
+            CleanReputationSandbox(days);
+
+            Context?.Respond($"Removed old reputations/gps/banks Junk for players that have not logged on in {days} days");
         }
 
         private static int WipeRep(bool removePlayerToFaction, bool removeFactionToFaction)
