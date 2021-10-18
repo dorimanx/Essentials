@@ -16,7 +16,7 @@ namespace Essentials
     public class AutoCommand : ViewModel
     {
         private TimeSpan _scheduledTime = TimeSpan.Zero;
-        private static readonly Logger Log = LogManager.GetLogger("Essentials");
+        //private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private TimeSpan _interval = TimeSpan.Zero;
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
@@ -78,15 +78,11 @@ namespace Essentials
                     _nextRun = DateTime.Now + _interval;
                 }
 
-
                 if (CommandTrigger == Trigger.Scheduled)
                 {
                     _nextRun = DateTime.Now.Date + _interval;
                     if (_nextRun < DateTime.Now) _nextRun += TimeSpan.FromDays(1);
                 }
-
-
-
             }
         }
 
@@ -95,7 +91,6 @@ namespace Essentials
         {
             get => _triggerRatio;
             set => SetValue(ref _triggerRatio, Math.Min(Math.Max(value, 0), 1));
-
         }
 
         [Display(Order = 4, Name = "Trigger Count", Description = "Only use with GridCount or PlayerCount Trigger")]
@@ -103,7 +98,6 @@ namespace Essentials
         {
             get => _triggerCount;
             set => SetValue(ref _triggerCount, Math.Max(0, value));
-
         }
 
         [Display(Name = "Day of week", GroupName = "Schedule", Description = "Combined with Scheduled Time, will run the command on the given day of the week at the set time.")]
@@ -140,7 +134,6 @@ namespace Essentials
                     return;
             }
 
-
             if (Steps.Count <= 0)
                 return;
 
@@ -156,8 +149,6 @@ namespace Essentials
                     ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
         }
-
-
 
         public class CommandStep : ViewModel
         {
@@ -199,7 +190,6 @@ namespace Essentials
             }
         }
 
-
         /// <summary>
         /// Runs the command and all steps immediately, in a new thread
         /// </summary>
@@ -215,10 +205,7 @@ namespace Essentials
             });
         }
 
-        public override string ToString()
-        {
-            return $"{Name} : {_trigger.ToString()} : {Steps.Count}";
-        }
+        public override string ToString() => $"{Name} : {_trigger} : {Steps.Count}";
     }
 
     public enum Gtl

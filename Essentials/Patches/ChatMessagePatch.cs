@@ -4,16 +4,9 @@ using Torch.Managers.PatchManager;
 using NLog;
 using VRage.Network;
 using Sandbox.Engine.Multiplayer;
-using Torch.Managers.ChatManager;
-using VRage.Game;
-using Torch.Utils;
-using Sandbox.Game.Gui;
-using System;
-using Sandbox.Game.World;
 
 namespace Essentials.Patches
 {
-    [PatchShim]
     public static class ChatMessagePatch
     {
         public static PlayerAccountModule PlayerAccountData = new PlayerAccountModule();
@@ -29,6 +22,7 @@ namespace Essentials.Patches
             {
                 if (debug)
                     Log.Info($"Method name: {DecalredMethod.Name}");
+
                 if (DecalredMethod.GetParameters().Length == parameterLenth && DecalredMethod.Name == name)
                 {
                     method = DecalredMethod;
@@ -46,7 +40,7 @@ namespace Essentials.Patches
                 var patchMethod = typeof(ChatMessagePatch).GetMethod(nameof(OnChatMessageReceived_Server), BindingFlags.Static | BindingFlags.NonPublic);
                 ctx.GetPattern(target).Prefixes.Add(patchMethod);
 
-                Log.Info("Patched OnChatMessageReceived_Server!");
+                Log.Info("Essentials Patched OnChatMessageReceived_Server!");
             }
             catch
             {
@@ -54,24 +48,18 @@ namespace Essentials.Patches
             }
         }
 
-        private static bool OnChatMessageReceived_Server(ref ChatMsg msg)
+        private static void OnChatMessageReceived_Server(ref ChatMsg msg)
         {
-            if (EssentialsPlugin.Instance.Config.EnableRanks)
+            var Account = PlayerAccountData.GetAccount(msg.Author);
+            if (Account != null)
             {
-                var Account = PlayerAccountData.GetAccount(msg.Author);
-                if (Account != null)
+                var Rank = RanksAndPermissions.GetRankData(Account.Rank);
+                if (Rank.DisplayPrefix)
                 {
-                    var Rank = RanksAndPermissions.GetRankData(Account.Rank);
-                    if (Rank.DisplayPrefix)
-                    {
-                        msg.Author = 0;
-                        msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
-                    }
+                    msg.Author = 0;
+                    msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
                 }
-                return true;
             }
-            return true;
         }
-
     }
 }

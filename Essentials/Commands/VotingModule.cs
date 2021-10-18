@@ -176,14 +176,14 @@ namespace Essentials.Commands
         {
             var sb = new StringBuilder();
             sb.AppendLine();
-            sb.AppendLine($"Current Vote Status: {VoteStatus.ToString()}");
+            sb.AppendLine($"Current Vote Status: {VoteStatus}");
             sb.AppendLine($"Current Vote Name: {voteInProgress}");
             sb.AppendLine($"Current vote count: {_voteReg.Count}");
             sb.AppendLine();
             sb.AppendLine("Last vote info");
             if (lastVoteName != null)
                 sb.AppendLine($"Last vote: {lastVoteName}");
-            sb.AppendLine($"Last Vote Result: {voteResult.ToString()}");
+            sb.AppendLine($"Last Vote Result: {voteResult}");
             sb.AppendLine($"Last vote percent: {voteResultPercentage}");
             if (Context.Player == null)
                 Context.Respond(sb.ToString());

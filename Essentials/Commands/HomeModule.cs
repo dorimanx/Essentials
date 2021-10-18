@@ -28,8 +28,8 @@ namespace Essentials.Commands
     [Category("home")]
     public class HomeModule : CommandModule
     {
-        RanksAndPermissionsModule RanksAndPermissionsModule = new RanksAndPermissionsModule();
-        PlayerAccountModule PlayerAccounts = new PlayerAccountModule();
+        private RanksAndPermissionsModule RanksAndPermissionsModule = new RanksAndPermissionsModule();
+        private PlayerAccountModule PlayerAccounts = new PlayerAccountModule();
 
         [Command("add")]
         [Permission(MyPromoteLevel.None)]

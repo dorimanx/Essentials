@@ -6,13 +6,13 @@ using Torch.API.Managers;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game;
+using VRageMath;
 
 namespace Essentials.Commands
 {
     [Category("info")]
     public class InfoModule : CommandModule
     {
-        [System.Obsolete]
         public static void Init()
         {
             var c = EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>();
@@ -25,7 +25,6 @@ namespace Essentials.Commands
             Context.Respond(string.Join(", ", EssentialsPlugin.Instance.Config.InfoCommands.Select(i => i.Command).Where(c => !string.IsNullOrEmpty(c))));
         }
 
-        [System.Obsolete]
         private static void MessageProcessing(TorchChatMessage msg, ref bool consumed)
         {
             var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;
@@ -40,12 +39,11 @@ namespace Essentials.Commands
             long playerId = MySession.Static.Players.TryGetIdentityId(msg.AuthorSteamId.Value);
 
             if (!string.IsNullOrEmpty(c.ChatResponse))
-                EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther("Server", c.ChatResponse, MyFontEnum.Blue, msg.AuthorSteamId.Value);
+                EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>()?.SendMessageAsOther("Server", c.ChatResponse, Color.Blue, msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.DialogResponse))
                 ModCommunication.SendMessageTo(new DialogMessage(c.Command, content: c.DialogResponse), msg.AuthorSteamId.Value);
             if (!string.IsNullOrEmpty(c.URL))
                 MyVisualScriptLogicProvider.OpenSteamOverlay($"https://steamcommunity.com/linkfilter/?url={c.URL}", playerId);
-
         }
     }
 }
