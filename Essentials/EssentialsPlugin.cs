@@ -2,18 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.Remoting.Contexts;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using Essentials.Commands;
 using Essentials.Patches;
 using NLog;
-using Sandbox.Engine.Multiplayer;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
-using Sandbox.Game.Entities.Character;
-using Sandbox.Game.Multiplayer;
 using Sandbox.Game.World;
 using Sandbox.Graphics.GUI;
 using Torch;
@@ -22,25 +18,20 @@ using Torch.API.Managers;
 using Torch.API.Plugins;
 using Torch.API.Session;
 using Torch.Commands;
-using Torch.Managers;
 using Torch.Managers.PatchManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using Torch.Session;
 using Torch.Views;
-using VRage.Game;
 using VRage.Game.Entity;
-using VRage.Game.ModAPI;
 using VRageMath;
 using Newtonsoft.Json;
 using SpaceEngineers.Game.World;
-using VRage.Network;
 
 namespace Essentials
 {
     public class EssentialsPlugin : TorchPluginBase, IWpfPlugin
     {
-        //Here to trigger rebuild
         public EssentialsConfig Config => _config?.Data;
         public string homeDataPath = "";
         public string rankDataPath = "";
@@ -54,16 +45,14 @@ namespace Essentials
         private HashSet<ulong> _motdOnce = new HashSet<ulong>();
         private PatchManager _pm;
         private PatchContext _context;
-     
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
         RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
         private static bool _initilized = false;
 
-
         /// <inheritdoc />
-        public UserControl GetControl() => _control ?? (_control = new PropertyGrid(){DataContext=Config/*, IsEnabled = false*/});
+        public UserControl GetControl() => _control ?? (_control = new PropertyGrid() { DataContext = Config/*, IsEnabled = false*/});
 
         public void Save()
         {
@@ -71,38 +60,35 @@ namespace Essentials
         }
 
         /// <inheritdoc />
+
         public override void Init(ITorchBase torch)
         {
             base.Init(torch);
             string path = Path.Combine(StoragePath, "Essentials.cfg");
             Log.Info($"Attempting to load config from {path}");
             _config = Persistent<EssentialsConfig>.Load(path);
+
             _sessionManager = Torch.Managers.GetManager<TorchSessionManager>();
             if (_sessionManager != null)
                 _sessionManager.SessionStateChanged += SessionChanged;
             else
                 Log.Warn("No session manager.  MOTD won't work");
-            homeDataPath = Path.Combine(StoragePath, "players.json");
-            if (!File.Exists(homeDataPath)) {
-                File.Create(homeDataPath);
-            }
-            
 
+            homeDataPath = Path.Combine(StoragePath, "players.json");
+            if (!File.Exists(homeDataPath))
+                File.Create(homeDataPath);
 
             rankDataPath = Path.Combine(StoragePath, "ranks.json");
-            if (!File.Exists(rankDataPath)) {
+            if (!File.Exists(rankDataPath))
                 File.Create(rankDataPath);
-            }
-            
-
 
             Instance = this;
             _pm = torch.Managers.GetManager<PatchManager>();
             _context = _pm.AcquireContext();
             SessionDownloadPatch.Patch(_context);
-            
-            if (Config.CutGameTags)
-                GameTagsPatch.Patch(_context);
+
+            if (Instance.Config.EnableRanks)
+                ChatMessagePatch.Patch(_context);
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)
@@ -115,12 +101,14 @@ namespace Essentials
             {
                 case TorchSessionState.Loading:
                     string homeData = File.ReadAllText(homeDataPath);
-                    if (!string.IsNullOrEmpty(homeData)) {
+                    if (!string.IsNullOrEmpty(homeData))
+                    {
                         PlayerAccountModule.PlayersAccounts = JsonConvert.DeserializeObject<List<PlayerAccountModule.PlayerAccountData>>(File.ReadAllText(homeDataPath));
                     }
 
                     string rankdata = File.ReadAllText(rankDataPath);
-                    if (!string.IsNullOrEmpty(rankdata)) {
+                    if (!string.IsNullOrEmpty(rankdata))
+                    {
                         RanksAndPermissionsModule.Ranks = JsonConvert.DeserializeObject<List<RanksAndPermissionsModule.RankData>>(File.ReadAllText(rankDataPath));
                     }
 
@@ -135,9 +123,9 @@ namespace Essentials
                     AccModule.ValidateRanks();
 
                     mpMan.PlayerLeft += ResetMotdOnce;
-                    cmdMan.OnCommandExecuting +=RanksAndPermissions.HasCommandPermission;
+                    cmdMan.OnCommandExecuting += RanksAndPermissions.HasCommandPermission;
                     MyEntities.OnEntityAdd += EntityAdded;
-                    if(Config.StopShipsOnStart)
+                    if (Config.StopShipsOnStart)
                         StopShips();
                     _control?.Dispatcher.Invoke(() =>
                                                {
@@ -147,13 +135,9 @@ namespace Essentials
                     AutoCommands.Instance.Start();
                     InfoModule.Init();
                     _initilized = true;
-
-
                     break;
 
-
                 case TorchSessionState.Unloading:
-
                     if (_initilized)
                     {
                         //Dont try and remove these unless server was actually fully initlized
@@ -163,7 +147,6 @@ namespace Essentials
                         mpMan.PlayerJoined -= MotdOnce;
                         MyEntities.OnEntityAdd -= EntityAdded;
                     }
-
 
                     _bagTracker.Clear();
                     _removalTracker.Clear();
@@ -179,12 +162,11 @@ namespace Essentials
             if (Config.BackpackLimit < 0)
                 return;
 
-            var b = myEntity as MyInventoryBagEntity;
-            if(b == null)
+            if (!(myEntity is MyInventoryBagEntity b))
                 return;
-            
+
             if (Config.BackpackLimit == 0)
-            { 
+            {
                 _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(b, DateTime.Now + TimeSpan.FromSeconds(30)));
                 return;
             }
@@ -199,13 +181,13 @@ namespace Essentials
         }
 
 
-        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong,string> RoleData) {
+        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
+        {
             PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
-            
         }
 
         private void ProcessBags()
-        { 
+        {
             //bags don't have inventory in the Add event, so we wait until the next tick. I hate everything.
             foreach (var bags in _bagTracker.Values)
             {
@@ -227,6 +209,7 @@ namespace Essentials
                     _removalTracker.Enqueue(new Tuple<MyInventoryBagEntity, DateTime>(rm, DateTime.Now + TimeSpan.FromSeconds(30)));
                 }
             }
+
             if (_removalTracker.Count > 0)
             {
                 var b = _removalTracker.Peek();
