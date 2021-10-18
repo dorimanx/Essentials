@@ -16,6 +16,11 @@ using VRage.Game;
 using VRage.ObjectBuilders;
 using System.Collections.Concurrent;
 using VRage.Groups;
+using Sandbox.Game.World;
+using System.Collections.Generic;
+using VRage.Network;
+using Sandbox.Engine.Multiplayer;
+using System;
 
 namespace Essentials
 {
@@ -26,7 +31,7 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void SetOwner(string gridName, string playerName)
         {
-            var firstArg = Context.Args.FirstOrDefault();
+            _ = Context.Args.FirstOrDefault();
             Utilities.TryGetEntityByNameOrId(gridName, out IMyEntity entity);
 
             if (!(entity is IMyCubeGrid grid))
@@ -35,9 +40,8 @@ namespace Essentials
                 return;
             }
 
-            var secondArg = Context.Args.ElementAtOrDefault(1);
-            long identityId;
-            if (!long.TryParse(playerName, out identityId))
+            _ = Context.Args.ElementAtOrDefault(1);
+            if (!long.TryParse(playerName, out long identityId))
             {
                 var player = Context.Torch.CurrentSession?.Managers?.GetManager<IMultiplayerManagerBase>().GetPlayerByName(playerName);
                 if (player == null)
@@ -139,8 +143,29 @@ namespace Essentials
         [Permission(MyPromoteLevel.SpaceMaster)]
         public void StaticLarge()
         {
-            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.GridSizeEnum == MyCubeSize.Large).Where(x => x.Projector == null))
-                grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
+            foreach (var grid in MyEntities.GetEntities().OfType<MyCubeGrid>().Where(g => g.Projector == null && g.GridSizeEnum == MyCubeSize.Large))
+            {
+                if (grid.BigOwners.Count > 0 && !MySession.Static.Players.IdentityIsNpc(grid.BigOwners.FirstOrDefault()))
+                {
+                    var grids = MyCubeGridGroups.Static.GetGroups(GridLinkTypeEnum.Logical).GetGroupNodes(grid);
+                    grids.SortNoAlloc((x, y) => x.BlocksCount.CompareTo(y.BlocksCount));
+                    grids.Reverse();
+                    grids.SortNoAlloc((x, y) => x.GridSizeEnum.CompareTo(y.GridSizeEnum));
+
+                    // stop the grids.
+                    foreach (var gridtostop in grids)
+                        gridtostop.Physics?.ClearSpeed();
+
+                    // tell to server
+                    grids.First().ConvertToStatic();
+
+                    // tell to client
+                    MyMultiplayer.RaiseEvent(grids.First(), (MyCubeGrid x) => new Action(x.ConvertToStatic), default);
+                    MyMultiplayer.RaiseEvent(grids.First(), (MyCubeGrid x) => new Action(x.ConvertToStatic), MyEventContext.Current.Sender);
+                }
+                else
+                    grid.OnConvertedToStationRequest(); //Keen why do you do this to me?
+            }
         }
 
         [Command("stopall", "Stops all moving grids.")]
@@ -162,23 +187,20 @@ namespace Essentials
 
             foreach (var entity in MyEntities.GetEntities())
             {
-                var grid = entity as MyCubeGrid;
-                if (grid == null || grid.Projector != null)
+                if (!(entity is MyCubeGrid grid) || grid.Projector != null)
                     continue;
 
                 if (grid.BigOwners.Contains(id))
                 {
-
                     sb.AppendLine($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks - Position {(EssentialsPlugin.Instance.Config.UtilityShowPosition ? grid.PositionComp.GetPosition().ToString() : "Unknown")}");
                     if (EssentialsPlugin.Instance.Config.MarkerShowPosition)
                     {
-                        var gridGPS = MyAPIGateway.Session?.GPS.Create(grid.DisplayName, ($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks"), grid.PositionComp.GetPosition(), true);
-
+                        // Add temp GPS coordinates on request.
+                        var gridGPS = MyAPIGateway.Session?.GPS.Create(grid.DisplayName, ($"{grid.DisplayName} - {grid.GridSizeEnum} - {grid.BlocksCount} blocks"), grid.PositionComp.GetPosition(), true, true);
                         MyAPIGateway.Session?.GPS.AddGps(Context.Player.IdentityId, gridGPS);
                     }
                 }
             }
-
             ModCommunication.SendMessageTo(new DialogMessage("Grids List", $"Ships/Stations owned by {Context.Player.DisplayName}", sb.ToString()), Context.Player.SteamUserId);
         }
 
