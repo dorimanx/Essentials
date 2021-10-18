@@ -28,7 +28,7 @@ namespace Essentials.Patches
         [ReflectedMethod(Name = "MemberwiseClone")]
         private static Func<object, object> _memberwiseClone;
 #pragma warning restore 649
-        
+
         public static void Patch(PatchContext ctx)
         {
             ctx.GetPattern(_sendSettingsToSteamMethod).Prefixes.Add(_prefix);
@@ -42,16 +42,16 @@ namespace Essentials.Patches
             {
                 var settings = (MyObjectBuilder_SessionSettings)_memberwiseClone(MySession.Static.Settings);
                 settings.BlockTypeLimits = new SerializableDictionary<string, short>();
-                
+
                 var myServerData = new MyCachedServerItem.MyServerData
                 {
                     Settings = settings,
                     ExperimentalMode = MySession.Static.IsSettingsExperimental(),
                     // to determinate "it's not a vanilla"
-                    Mods = new List<WorkshopId> {new WorkshopId(1406994352, "Steam")},
+                    Mods = new List<WorkshopId> { new WorkshopId(1406994352, "Steam") },
                     Description = MySandboxGame.ConfigDedicated?.ServerDescription
                 };
-                
+
                 Serializer.Serialize(memoryStream, myServerData);
                 array = MyCompression.Compress(memoryStream.ToArray());
             }
@@ -61,9 +61,9 @@ namespace Essentials.Patches
             for (var i = 0; i < Math.Ceiling(array.Length / 93.0); i++)
             {
                 byte[] part;
-                
+
                 var partLength = array.Length - 93 * i;
-                
+
                 if (partLength >= 93)
                 {
                     part = new byte[93];

@@ -53,18 +53,18 @@ namespace Essentials
             return false;
         }
 
-        public static IMyIdentity GetIdentityByNameOrIds(string playerNameOrIds) 
+        public static IMyIdentity GetIdentityByNameOrIds(string playerNameOrIds)
         {
-            foreach (var identity in MySession.Static.Players.GetAllIdentities()) 
+            foreach (var identity in MySession.Static.Players.GetAllIdentities())
             {
                 if (identity.DisplayName == playerNameOrIds)
                     return identity;
 
-                if (long.TryParse(playerNameOrIds, out long identityId)) 
+                if (long.TryParse(playerNameOrIds, out long identityId))
                     if (identity.IdentityId == identityId)
                         return identity;
 
-                if (ulong.TryParse(playerNameOrIds, out ulong steamId)) 
+                if (ulong.TryParse(playerNameOrIds, out ulong steamId))
                 {
                     ulong id = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
                     if (id == steamId)
@@ -105,11 +105,13 @@ namespace Essentials
             return $"{size:N}{p}B";
         }
 
-        public static string DictionaryToJson(Dictionary<string, object> dict) {
+        public static string DictionaryToJson(Dictionary<string, object> dict)
+        {
             return JsonConvert.SerializeObject(dict, Formatting.Indented);
         }
 
-        public static Dictionary<string, object> JsonToDictionary(string json) {
+        public static Dictionary<string, object> JsonToDictionary(string json)
+        {
             return JsonConvert.DeserializeObject<Dictionary<string, object>>(json);
         }
     }

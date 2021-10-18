@@ -23,28 +23,34 @@ using VRageRender.Utils;
 using VRage.Game;
 using VRage.Game.ObjectBuilders.Definitions;
 
-namespace Essentials.Commands {
+namespace Essentials.Commands
+{
     [Category("home")]
-    public class HomeModule : CommandModule {
+    public class HomeModule : CommandModule
+    {
         RanksAndPermissionsModule RanksAndPermissionsModule = new RanksAndPermissionsModule();
         PlayerAccountModule PlayerAccounts = new PlayerAccountModule();
 
         [Command("add")]
         [Permission(MyPromoteLevel.None)]
-        public void addHome(string homeName) {
-            if (!EssentialsPlugin.Instance.Config.EnableHomes) {
+        public void addHome(string homeName)
+        {
+            if (!EssentialsPlugin.Instance.Config.EnableHomes)
+            {
                 Context.Respond("Homes are not enabled for this server!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
-            if (Rank == null || Account == null) {
+            if (Rank == null || Account == null)
+            {
                 Context.Respond("Error loading required information. Home not set");
                 return;
             }
 
-            if (Account.Homes.Count >= Rank.MaxHomes ) {
+            if (Account.Homes.Count >= Rank.MaxHomes)
+            {
                 Context.Respond("You have the maximum amount of homes!");
                 return;
             }
@@ -56,20 +62,24 @@ namespace Essentials.Commands {
 
         [Command("del")]
         [Permission(MyPromoteLevel.None)]
-        public void delHome(string homeName) {
-            if (!EssentialsPlugin.Instance.Config.EnableHomes) {
+        public void delHome(string homeName)
+        {
+            if (!EssentialsPlugin.Instance.Config.EnableHomes)
+            {
                 Context.Respond("Homes are not enabled for this server!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
-            if (Rank == null || Account == null) {
+            if (Rank == null || Account == null)
+            {
                 Context.Respond("Error loading required information. Home not deleted!");
                 return;
             }
 
-            if (Account.Homes.ContainsKey(homeName)) {
+            if (Account.Homes.ContainsKey(homeName))
+            {
                 Account.Homes.Remove(homeName);
                 Context.Respond("Home successfully removed!");
                 PlayerAccounts.UpdatePlayerAccount(Account);
@@ -81,20 +91,24 @@ namespace Essentials.Commands {
 
         [Command("list")]
         [Permission(MyPromoteLevel.None)]
-        public void ListHomes() {
-            if (!EssentialsPlugin.Instance.Config.EnableHomes) {
+        public void ListHomes()
+        {
+            if (!EssentialsPlugin.Instance.Config.EnableHomes)
+            {
                 Context.Respond("Homes are not enabled for this server!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
-            if (Rank == null || Account == null) {
+            if (Rank == null || Account == null)
+            {
                 Context.Respond("Error loading required information. Home not deleted!");
                 return;
             }
 
-            if (Account.Homes.Count == 0) {
+            if (Account.Homes.Count == 0)
+            {
                 Context.Respond("You do not have any homes!");
                 return;
             }
@@ -102,7 +116,8 @@ namespace Essentials.Commands {
             StringBuilder sb = new StringBuilder();
 
             sb.Append("List of homes: ");
-            foreach(var homes in Account.Homes) {
+            foreach (var homes in Account.Homes)
+            {
                 sb.Append($"'{homes.Key}', ");
             }
             sb.TrimEnd(2);
@@ -111,15 +126,18 @@ namespace Essentials.Commands {
 
         [Command("goto")]
         [Permission(MyPromoteLevel.None)]
-        public void GotoHome(string homeName) {
-            if (!EssentialsPlugin.Instance.Config.EnableHomes) {
+        public void GotoHome(string homeName)
+        {
+            if (!EssentialsPlugin.Instance.Config.EnableHomes)
+            {
                 Context.Respond("Homes are not enabled for this server!");
                 return;
             }
             var Account = PlayerAccounts.GetAccount(Context.Player.SteamUserId);
             var Rank = RanksAndPermissionsModule.GetRankData(Account.Rank);
 
-            if (Rank == null || Account == null) {
+            if (Rank == null || Account == null)
+            {
                 Context.Respond("Error loading required information.");
                 return;
             }
@@ -127,7 +145,8 @@ namespace Essentials.Commands {
             Vector3D targetPos = Account.Homes[homeName];
 
             var targetEntity = Context.Player?.Controller.ControlledEntity.Entity;
-            if (Context.Player?.Controller.ControlledEntity is MyCockpit controller) {
+            if (Context.Player?.Controller.ControlledEntity is MyCockpit controller)
+            {
                 Context.Respond("You cannot use !home while in control of a grid");
                 return;
             }
@@ -136,7 +155,8 @@ namespace Essentials.Commands {
 
             targetEntity.SetPosition(targetPos);
 
-            for (int i = 0; i != 5000; i++) {
+            for (int i = 0; i != 5000; i++)
+            {
                 Context.Player.Character.Physics.SetSpeeds(Vector3.Zero, Vector3.Zero);
             }
             Context.Respond($"Teleported to '{homeName}'");

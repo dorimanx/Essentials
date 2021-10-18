@@ -2,16 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
 using Sandbox;
 using Sandbox.Engine.Multiplayer;
 using Sandbox.Game.World;
-using Torch;
 using Torch.API.Managers;
 using Torch.Commands;
 using Torch.Commands.Permissions;
-using Torch.Managers.ChatManager;
 using Torch.Mod;
 using Torch.Mod.Messages;
 using VRage.Game.ModAPI;
@@ -35,7 +32,7 @@ namespace Essentials.Commands
             Stats.Timing.WriteTo(sb);
 
             if (Context?.Player?.SteamUserId > 0)
-                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()) , Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Statistics", null, sb.ToString()), Context.Player.SteamUserId);
             else
                 Context.Respond(sb.ToString());
         }
@@ -58,13 +55,13 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void ListPlayers()
         {
-            if(MySession.Static.Players.GetOnlinePlayerCount() == 0)
+            if (MySession.Static.Players.GetOnlinePlayerCount() == 0)
             {
                 Context.Respond("No players online");
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            foreach(var player in MySession.Static.Players.GetOnlinePlayers())
+            foreach (var player in MySession.Static.Players.GetOnlinePlayers())
             {
                 sb.AppendLine();
                 sb.AppendLine($"{player.DisplayName}");
@@ -142,7 +139,7 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
@@ -154,7 +151,7 @@ namespace Essentials.Commands
                 Context.Respond($"ID {id} is already reserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Add(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} added to reserved slots.");
@@ -166,19 +163,19 @@ namespace Essentials.Commands
         {
             ulong.TryParse(playerNameOrId, out var id);
             id = Utilities.GetPlayerByNameOrId(playerNameOrId)?.SteamUserId ?? id;
-            
+
             if (id == 0)
             {
                 Context.Respond($"Player '{playerNameOrId}' not found or ID is invalid.");
                 return;
             }
-            
+
             if (!MySandboxGame.ConfigDedicated.Reserved.Contains(id))
             {
                 Context.Respond($"ID {id} is already unreserved.");
                 return;
             }
-            
+
             MySandboxGame.ConfigDedicated.Reserved.Remove(id);
             MySandboxGame.ConfigDedicated.Save();
             Context.Respond($"ID {id} removed from reserved slots.");
@@ -186,7 +183,9 @@ namespace Essentials.Commands
 
         private static Dictionary<ulong, DateTime> _muted;
         private Timer _muteTimer;
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
         private IChatManagerServer _chatManager;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
         private IChatManagerServer ChatManager => _chatManager ?? (EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>());
         private List<ulong> _removeCache;
 
@@ -195,9 +194,11 @@ namespace Essentials.Commands
         {
             if (_muteTimer == null)
             {
-                _muteTimer = new Timer(1000);
-                _muteTimer.AutoReset = true;
-                _muteTimer.Elapsed += _muteTimer_Elapsed;
+                _muteTimer = new Timer(1000)
+                {
+                    AutoReset = true
+                };
+                _muteTimer.Elapsed += MuteTimer_Elapsed;
                 _muted = new Dictionary<ulong, DateTime>();
                 _removeCache = new List<ulong>();
             }
@@ -212,7 +213,7 @@ namespace Essentials.Commands
 
             bool res = ChatManager.MuteUser(p.SteamUserId);
 
-            if(!res)
+            if (!res)
                 Context.Respond($"Failed to mute user {user}. They are already muted.");
             else
                 Context.Respond($"Muted user {p.DisplayName}");
@@ -225,13 +226,13 @@ namespace Essentials.Commands
             }
         }
 
-        private void _muteTimer_Elapsed(object sender, ElapsedEventArgs e)
+        private void MuteTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
             lock (_muted)
             {
                 foreach (var p in _muted)
                 {
-                    if(p.Value > DateTime.Now)
+                    if (p.Value > DateTime.Now)
                         continue;
 
                     _removeCache.Add(p.Key);
@@ -279,11 +280,11 @@ namespace Essentials.Commands
             foreach (var m in ChatManager.MutedUsers)
             {
                 var s = MySession.Static.Players.TryGetIdentityNameFromSteamId(m);
-                if(string.IsNullOrEmpty(s))
+                if (string.IsNullOrEmpty(s))
                     s = m.ToString();
                 bool f = false;
-                DateTime t = default(DateTime);
-                if(_muted != null)
+                DateTime t = default;
+                if (_muted != null)
                     lock (_muted)
                         f = _muted.TryGetValue(m, out t);
 
@@ -301,18 +302,22 @@ namespace Essentials.Commands
 
         [Command("give", "Insert an item with a specific quanity into a players inventory")]
         [Permission(MyPromoteLevel.Admin)]
-        public void give(string playerName, string itemType, string item, int quantity) {
+        public void give(string playerName, string itemType, string item, int quantity)
+        {
             string type = "MyObjectBuilder_" + itemType;
             VRage.Game.MyDefinitionId.TryParse(type, item, out VRage.Game.MyDefinitionId defID);
 
-            if (defID.ToString().Contains("null")) {
+            if (defID.ToString().Contains("null"))
+            {
                 Context.Respond("Invalid item type");
                 return;
             }
 
-            if (playerName != "*") {
+            if (playerName != "*")
+            {
                 var p = Utilities.GetPlayerByNameOrId(playerName);
-                if (p == null) {
+                if (p == null)
+                {
                     Context.Respond("Player not found");
                     return;
                 }
@@ -320,8 +325,10 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), p.SteamUserId);
             }
 
-            else {
-                foreach (var p in MySession.Static.Players.GetOnlinePlayers()) {
+            else
+            {
+                foreach (var p in MySession.Static.Players.GetOnlinePlayers())
+                {
                     var player = Utilities.GetPlayerByNameOrId(p.DisplayName);
                     Sandbox.Game.MyVisualScriptLogicProvider.AddToPlayersInventory(p.Identity.IdentityId, defID, quantity);
                     ModCommunication.SendMessageTo(new NotificationMessage($"You have been given {quantity} {item} {itemType}", 5000, "Blue"), player.SteamUserId);

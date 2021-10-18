@@ -22,7 +22,7 @@ namespace Essentials
         public string ChatResponse
         {
             get => _chatResponse;
-            set =>SetValue(ref _chatResponse, value);
+            set => SetValue(ref _chatResponse, value);
         }
 
         [Display(Order = 3, Name = "Dialog Response", Description = "Dialog box response")]
@@ -38,7 +38,7 @@ namespace Essentials
             get => _urlResponse;
             set => SetValue(ref _urlResponse, value);
         }
-        
+
         public override string ToString()
         {
             return Command;

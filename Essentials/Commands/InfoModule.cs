@@ -10,8 +10,9 @@ using VRage.Game;
 namespace Essentials.Commands
 {
     [Category("info")]
-    public class InfoModule:CommandModule
+    public class InfoModule : CommandModule
     {
+        [System.Obsolete]
         public static void Init()
         {
             var c = EssentialsPlugin.Instance.Torch.CurrentSession?.Managers?.GetManager<IChatManagerServer>();
@@ -24,6 +25,7 @@ namespace Essentials.Commands
             Context.Respond(string.Join(", ", EssentialsPlugin.Instance.Config.InfoCommands.Select(i => i.Command).Where(c => !string.IsNullOrEmpty(c))));
         }
 
+        [System.Obsolete]
         private static void MessageProcessing(TorchChatMessage msg, ref bool consumed)
         {
             var infoCommands = EssentialsPlugin.Instance.Config.InfoCommands;

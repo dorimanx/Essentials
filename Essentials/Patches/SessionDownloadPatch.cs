@@ -242,7 +242,7 @@ namespace Essentials.Patches
 
             foreach (MyPlayer p in m_players.Values)
             {
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = p.Id.SteamId, SerialId = p.Id.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = p.Id.SteamId, SerialId = p.Id.SerialId };
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
                 playerOb.DisplayName = p.DisplayName;
@@ -266,7 +266,7 @@ namespace Essentials.Patches
                 if (m_players.ContainsKey(identityPair.Key))
                     continue;
 
-                var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId};
+                var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = identityPair.Key.SteamId, SerialId = identityPair.Key.SerialId };
                 MyIdentity identity = MySession.Static.Players.TryGetIdentity(identityPair.Value);
                 var playerOb = Pool.AllocateOrCreate<MyObjectBuilder_Player>();
 
@@ -288,7 +288,7 @@ namespace Essentials.Patches
                     if (m_players.ContainsKey(colorPair.Key) || m_playerIdentityIds.ContainsKey(colorPair.Key))
                         continue;
 
-                    var id = new MyObjectBuilder_Checkpoint.PlayerId {ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId};
+                    var id = new MyObjectBuilder_Checkpoint.PlayerId { ClientId = colorPair.Key.SteamId, SerialId = colorPair.Key.SerialId };
                     _checkpoint.AllPlayersColors.Dictionary.Add(id, colorPair.Value);
                 }
             }
@@ -334,17 +334,17 @@ namespace Essentials.Patches
                         if (gps.EntityId == 0 || MyEntities.GetEntityById(gps.EntityId) != null)
                         {
                             var builder = new MyObjectBuilder_Gps.Entry
-                                          {
-                                              name = gps.Name,
-                                              description = gps.Description,
-                                              coords = gps.Coords,
-                                              isFinal = gps.DiscardAt == null,
-                                              showOnHud = gps.ShowOnHud,
-                                              alwaysVisible = gps.AlwaysVisible,
-                                              color = gps.GPSColor,
-                                              entityId = gps.EntityId,
-                                              DisplayName = gps.DisplayName
-                                          };
+                            {
+                                name = gps.Name,
+                                description = gps.Description,
+                                coords = gps.Coords,
+                                isFinal = gps.DiscardAt == null,
+                                showOnHud = gps.ShowOnHud,
+                                alwaysVisible = gps.AlwaysVisible,
+                                color = gps.GPSColor,
+                                entityId = gps.EntityId,
+                                DisplayName = gps.DisplayName
+                            };
                             bGps.Entries.Add(builder);
                         }
                     }

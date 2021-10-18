@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NLog;
 using Sandbox;
-using Sandbox.Engine.Multiplayer;
 using Sandbox.Engine.Voxels;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Character;
-using Sandbox.Game.World;
 using Sandbox.Game.World.Generator;
 using Torch.Commands;
 using Torch.Commands.Permissions;
@@ -18,10 +14,8 @@ using Torch.Mod.Messages;
 using Torch.Utils;
 using VRage.Game.Entity;
 using VRage.Game.ModAPI;
-using VRage.Network;
 using VRage.Voxels;
 using VRageMath;
-using Parallel = ParallelTasks.Parallel;
 
 namespace Essentials.Commands
 {
@@ -30,10 +24,13 @@ namespace Essentials.Commands
     {
         private static Logger _log = LogManager.GetCurrentClassLogger();
 
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
         [ReflectedGetter(Name = "m_asteroidsModule")]
         private static Func<MyProceduralWorldGenerator, MyProceduralAsteroidCellGenerator> _asteroidGenerator;
+
         [ReflectedSetter(Name = "m_isClosingEntities")]
         private static Action<MyProceduralAsteroidCellGenerator, bool> _deletingSet;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         private static MyProceduralAsteroidCellGenerator _generatorInstance;
         private static MyProceduralAsteroidCellGenerator GeneratorInstance => _generatorInstance ?? (_generatorInstance = _asteroidGenerator(MyProceduralWorldGenerator.Static));
@@ -42,10 +39,10 @@ namespace Essentials.Commands
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
-            
+
             var resetIds = new List<long>();
             int count = 0;
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -136,7 +133,7 @@ namespace Essentials.Commands
 
             var resetIds = new List<long>();
             int count = 0;
-            
+
             foreach (var map in voxelMaps)
             {
                 try
@@ -212,7 +209,7 @@ namespace Essentials.Commands
             var maps = new List<MyPlanet>(2);
             foreach (MyPlanet map in MyEntities.GetEntities().OfType<MyPlanet>())
             {
-                if( map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
+                if (map.StorageName.Contains(planetName, StringComparison.CurrentCultureIgnoreCase))
                     maps.Add(map);
             }
 
@@ -224,7 +221,7 @@ namespace Essentials.Commands
                 case 1:
                     var map = maps[0];
                     map.Storage.Reset(MyStorageDataTypeFlags.All);
-                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[]{map.EntityId}));
+                    ModCommunication.SendMessageToClients(new VoxelResetMessage(new long[] { map.EntityId }));
                     Context.Respond($"Reset planet {map.Name}");
                     return;
                 default:
@@ -241,23 +238,24 @@ namespace Essentials.Commands
         {
             if (Context.Player == null)
                 Context.Respond("Invalid command input! Must be ingame!");
- 
 
-            if(Radius <= 0)
+
+            if (Radius <= 0)
             {
                 Context.Respond("Inavlid radius!");
                 return;
             }
-                
 
-            if(ResetVoxelInArea(Context.Player.GetPosition(), Radius)) {
+
+            if (ResetVoxelInArea(Context.Player.GetPosition(), Radius))
+            {
                 Context.Respond("Voxel reset complete!");
             }
             else
             {
                 Context.Respond("Couldnt reset voxels! Check log for more information!");
             }
-            
+
 
         }
 
@@ -336,7 +334,7 @@ namespace Essentials.Commands
                 }
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _log.Error(ex, "Voxel reset failed!");
                 return false;

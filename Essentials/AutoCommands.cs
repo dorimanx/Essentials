@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Timers;
 using NLog;
 using Torch;
@@ -27,9 +26,9 @@ namespace Essentials
         public static AutoCommands Instance => _instance ?? (_instance = new AutoCommands());
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private Timer _timer;
-        private readonly Dictionary<AutoCommand,DateTime> _simSpeedCheck  = new Dictionary<AutoCommand, DateTime>();
+        private readonly Dictionary<AutoCommand, DateTime> _simSpeedCheck = new Dictionary<AutoCommand, DateTime>();
 
-
+        [Obsolete]
         public void Start()
         {
             _timer = new Timer(1000);
@@ -38,17 +37,19 @@ namespace Essentials
             _timer.Start();
         }
 
+        [Obsolete]
         private bool CanRun(AutoCommand command)
         {
+            if (MySession.Static?.Ready == false) return false;
+
             switch (command.CommandTrigger)
             {
                 case Trigger.Disabled:
-                    return  false;
+                    return false;
                 case Trigger.OnStart:
-                    if (command.Completed || MySession.Static?.Ready == false)break;
+                    if (command.Completed) break;
                     command.Completed = true;
                     command.RunNow();
-
                     break;
                 case Trigger.Vote:
                     break;
@@ -65,7 +66,7 @@ namespace Essentials
                         case LessThan:
                             return gridCount < command.TriggerCount;
                         case Equal:
-                            return Math.Abs(gridCount-command.TriggerCount)<1;
+                            return Math.Abs(gridCount - command.TriggerCount) < 1;
                         default:
                             throw new Exception("meh");
                     }
@@ -73,11 +74,11 @@ namespace Essentials
 
                     if (command.Compare == GreaterThan)
                     {
-                        return MySession.Static.Players.GetOnlinePlayerCount() > command.TriggerCount;
+                        return MySession.Static?.Players.GetOnlinePlayerCount() > command.TriggerCount;
                     }
                     else if (command.Compare == LessThan)
                     {
-                        return MySession.Static.Players.GetOnlinePlayerCount() < command.TriggerCount;
+                        return MySession.Static?.Players.GetOnlinePlayerCount() < command.TriggerCount;
                     }
                     break;
 
@@ -117,13 +118,13 @@ namespace Essentials
                                 return (Math.Abs(Sync.ServerSimulationRatio - command.TriggerRatio) <= 0);
                             }
 
-                            if (Math.Abs(Sync.ServerSimulationRatio - command.TriggerRatio)>0)
+                            if (Math.Abs(Sync.ServerSimulationRatio - command.TriggerRatio) > 0)
                                 break;
                             _simSpeedCheck.Add(command, DateTime.Now);
                             break;
-                       }
-                       break;
-                            
+                    }
+                    break;
+
                 default:
                     throw new Exception("fuck it");
             }
@@ -131,14 +132,14 @@ namespace Essentials
             return false;
         }
 
-
+        [Obsolete]
         private void TimerElapsed(object sender, ElapsedEventArgs e)
         {
             foreach (var command in EssentialsPlugin.Instance.Config.AutoCommands)
             {
-                if(!CanRun(command))
+                if (!CanRun(command))
                     continue;
-                
+
                 try
                 {
                     command.Update();
