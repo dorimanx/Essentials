@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-//using NLog;
 using Sandbox.Game;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Multiplayer;
@@ -25,8 +24,6 @@ namespace Essentials.Commands
 {
     public class WorldModule : CommandModule
     {
-        //private static Logger _log = LogManager.GetCurrentClassLogger();
-
         private static readonly FieldInfo GpsDicField = typeof(MyGpsCollection).GetField("m_playerGpss", BindingFlags.NonPublic | BindingFlags.Instance);
         private static readonly FieldInfo SeedParamField = typeof(MyProceduralWorldGenerator).GetField("m_existingObjectsSeeds", BindingFlags.NonPublic | BindingFlags.Instance);
 
@@ -55,6 +52,14 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
+                    if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                        continue;
+
+                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                        continue;
+
                     RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
@@ -83,7 +88,14 @@ namespace Essentials.Commands
             {
                 if (identity.LastLoginTime < cutoff)
                 {
-                    //MySession.Static.Factions.KickPlayerFromFaction(identity.IdentityId);
+                    if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                        continue;
+
+                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                        continue;
+
                     RemoveFromFaction_Internal(identity);
                     MySession.Static.Players.RemoveIdentity(identity.IdentityId);
                     count++;
@@ -118,6 +130,11 @@ namespace Essentials.Commands
             {
                 if (identity.DisplayName == playername)
                 {
+                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                        continue;
+
                     MyBankingSystem.RemoveAccount_Clients(identity.IdentityId);
                     idCache.Add(identity.IdentityId);
                     RemoveFromFaction_Internal(identity);
@@ -452,6 +469,11 @@ namespace Essentials.Commands
                 if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
                     continue;
 
+                var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                    continue;
+
                 AllIdentities.Add(identity.IdentityId);
 
                 if (identity.LastLoginTime < cutoff)
@@ -520,6 +542,11 @@ namespace Essentials.Commands
                 if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
                     continue;
 
+                var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                    continue;
+
                 AllIdentities.Add(identity.IdentityId);
 
                 if (identity.LastLoginTime < cutoff)
@@ -580,6 +607,11 @@ namespace Essentials.Commands
             foreach (var identity in idents)
             {
                 if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
+
+                var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+
+                if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
                     continue;
 
                 AllIdentities.Add(identity.IdentityId);
