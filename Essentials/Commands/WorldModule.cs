@@ -19,6 +19,8 @@ using Torch.Managers;
 using Torch.Utils;
 using VRage.Game;
 using VRage.Game.ModAPI;
+using VRage.Network;
+using Sandbox.Engine.Multiplayer;
 
 namespace Essentials.Commands
 {
@@ -724,6 +726,81 @@ namespace Essentials.Commands
             CleanReputationSandbox(days);
 
             Context?.Respond($"Removed old reputations/gps/banks Junk for players that have not logged on in {days} days");
+        }
+
+        [Command("boostnpcrep", "Change repuation between players factions and npc factions for given amount max 1500")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void BoostNpcReputation(int amount = 2000)
+        {
+            if (amount > 1500 || amount < -1500)
+            {
+                Context.Respond("Please input amount in range of -1500 to 1500");
+                return;
+            }
+
+            var PlayersFactions = new Dictionary<long, MyFaction>();
+            var NPCFactions = new Dictionary<long, MyFaction>();
+            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+
+            foreach (var FactionItem in MySession.Static.Factions.ToList())
+            {
+                if (FactionItem.Value.Tag == "SPID" || FactionItem.Value.Tag == "SPRT" ||
+                    FactionItem.Value.Tag == "PiratiX" || FactionItem.Value.Tag == "CULT" || FactionItem.Value.Tag == "REAVER")
+                    continue;
+
+                if (MySession.Static.Players.IdentityIsNpc(FactionItem.Value.FounderId))
+                    FactionItem.Value.AutoAcceptPeace = true;
+            }
+
+            foreach (var FactionItem in MySession.Static.Factions.ToList())
+            {
+                if (FactionItem.Value.Tag == "SPID" || FactionItem.Value.Tag == "SPRT" ||
+                    FactionItem.Value.Tag == "PiratiX" || FactionItem.Value.Tag == "CULT" || FactionItem.Value.Tag == "REAVER")
+                    continue;
+
+                if (MySession.Static.Players.IdentityIsNpc(FactionItem.Value.FounderId))
+                {
+                    NPCFactions.Add(FactionItem.Key, FactionItem.Value);
+                    continue;
+                }
+
+                PlayersFactions.Add(FactionItem.Key, FactionItem.Value);
+            }
+
+            int NpcFactionsCount = NPCFactions.Count();
+            int PlayerFactionsCount = PlayersFactions.Count();
+
+            foreach (var PlayerFaction in PlayersFactions)
+            {
+                foreach (var NpcFaction in NPCFactions)
+                {
+                    if (!MySession.Static.Factions.IsPeaceRequestStateSent(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId))
+                        MyFactionCollection.SendPeaceRequest(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId);
+
+                    if (MySession.Static.Factions.IsPeaceRequestStatePending(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId))
+                        MyFactionCollection.AcceptPeace(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId);
+
+                    var AmountNow = MySession.Static.Factions.GetRelationBetweenFactions(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId);
+                    if (AmountNow.Item2 > amount)
+                        continue;
+
+                    MySession.Static.Factions.SetReputationBetweenFactions(PlayerFaction.Value.FactionId, NpcFaction.Value.FactionId, amount);
+                }
+            }
+
+            foreach (var PlayerID in idents)
+            {
+                foreach (var NpcFaction in NPCFactions)
+                {
+                    var AmountNow = MySession.Static.Factions.GetRelationBetweenPlayerAndFaction(PlayerID.IdentityId, NpcFaction.Value.FactionId);
+                    if (AmountNow.Item2 > amount)
+                        continue;
+
+                    _ = MySession.Static.Factions.AddFactionPlayerReputation(PlayerID.IdentityId, NpcFaction.Value.FactionId, amount, true, true);
+                }
+            }
+
+            Context.Respond($"Changed reputation with {NpcFactionsCount} NPC factions to {int.Parse(amount.ToString())} reputation, for {PlayerFactionsCount} player factions, and set peace!");
         }
 
         private static int WipeRep(bool removePlayerToFaction, bool removeFactionToFaction)
