@@ -7,8 +7,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Essentials</RootNamespace>
     <AssemblyName>Essentials</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -187,12 +188,12 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
-    <ItemGroup>
-        <Content Include="$(ProjectDir)\manifest.xml" CopyToOutputDirectory="PreserveNewest" />
-    </ItemGroup>
-    <Target Name="Zip" BeforeTargets="AfterBuild">
-        <MakeDir Directories="$(SolutionDir)\Build\" />
-        <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(SolutionDir)\Build\$(MSBuildProjectName).zip" Overwrite="true" />
-    </Target>
+  <ItemGroup>
+    <Content Include="$(ProjectDir)\manifest.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="Zip" BeforeTargets="AfterBuild">
+    <MakeDir Directories="$(SolutionDir)\Build\" />
+    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(SolutionDir)\Build\$(MSBuildProjectName).zip" Overwrite="true" />
+  </Target>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
