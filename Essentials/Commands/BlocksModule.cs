@@ -209,7 +209,7 @@ namespace Essentials.Commands
                 case BlockCategory.Power:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Reactor) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_BatteryBlock) ||
-                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel)  ||
+                           block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_SolarPanel) ||
                            block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_FueledPowerProducer);
                 case BlockCategory.Production:
                     return block.BlockDefinition.Id.TypeId == typeof(MyObjectBuilder_Assembler) ||

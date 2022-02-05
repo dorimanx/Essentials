@@ -42,13 +42,13 @@ namespace Essentials
         private UserControl _control;
         private Persistent<EssentialsConfig> _config;
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
-        private HashSet<ulong> _motdOnce = new HashSet<ulong>();
+        private readonly HashSet<ulong> _motdOnce = new HashSet<ulong>();
         private PatchManager _pm;
         private PatchContext _context;
 
         public static EssentialsPlugin Instance { get; private set; }
         public PlayerAccountModule AccModule = new PlayerAccountModule();
-        RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
+        readonly RanksAndPermissionsModule RanksAndPermissions = new RanksAndPermissionsModule();
         private static bool _initilized = false;
 
         /// <inheritdoc />
@@ -118,7 +118,8 @@ namespace Essentials
                     mpMan.PlayerJoined += AccModule.GenerateAccount;
                     mpMan.PlayerJoined += AccModule.CheckIp;
                     mpMan.PlayerJoined += MotdOnce;
-                    if (Config.EnableRanks) {
+                    if (Config.EnableRanks)
+                    {
                         RanksAndPermissions.GenerateRank(Config.DefaultRank);
                         mpMan.PlayerJoined += RanksAndPermissions.RegisterInheritedRanks;
                         AccModule.ValidateRanks();
@@ -156,8 +157,8 @@ namespace Essentials
             }
         }
 
-        private Dictionary<long, List<MyInventoryBagEntity>> _bagTracker = new Dictionary<long, List<MyInventoryBagEntity>>();
-        private Queue<Tuple<MyInventoryBagEntity, DateTime>> _removalTracker = new Queue<Tuple<MyInventoryBagEntity, DateTime>>();
+        private readonly Dictionary<long, List<MyInventoryBagEntity>> _bagTracker = new Dictionary<long, List<MyInventoryBagEntity>>();
+        private readonly Queue<Tuple<MyInventoryBagEntity, DateTime>> _removalTracker = new Queue<Tuple<MyInventoryBagEntity, DateTime>>();
 
         private void EntityAdded(MyEntity myEntity)
         {
@@ -284,7 +285,7 @@ namespace Essentials
 
             var id = player.Client.SteamUserId;
             if (id <= 0) return;
-            
+
             string name = player.Identity?.DisplayName ?? "player";
 
             bool isNewUser = !Config.KnownSteamIds.Contains(id);
@@ -292,7 +293,7 @@ namespace Essentials
             {
                 Config.KnownSteamIds.Add(id);
             }
-            
+
             if (!string.IsNullOrEmpty(Config.MotdUrl) && isNewUser && Config.NewUserMotdUrl)
             {
                 var url = MakeUrl(Config.MotdUrl);

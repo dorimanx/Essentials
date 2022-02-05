@@ -107,7 +107,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void EndByOrder(int commandNumber = 0)
         {
-            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x => x.IsRunning()));
 
             if (commands.Count == 0)
             {
@@ -152,7 +152,7 @@ namespace Essentials.Commands
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands", $"Found {commands.Count} Commands", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
@@ -160,7 +160,7 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void ListAutoRunning()
         {
-            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x=>x.IsRunning()));
+            var commands = new List<AutoCommand>(EssentialsPlugin.Instance.Config.AutoCommands.Where(x => x.IsRunning()));
 
             if (commands.Count == 0)
             {
@@ -184,7 +184,7 @@ namespace Essentials.Commands
 
             else
             {
-                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands",$"Found {commands.Count} Commands",sb.ToString()), Context.Player.SteamUserId);
+                ModCommunication.SendMessageTo(new DialogMessage("Current AutoCommands", $"Found {commands.Count} Commands", sb.ToString()), Context.Player.SteamUserId);
             }
         }
 
@@ -282,7 +282,7 @@ namespace Essentials.Commands
 
         private static Dictionary<ulong, DateTime> _muted;
         private Timer _muteTimer;
-        public IChatManagerServer _chatManager;
+        private readonly IChatManagerServer _chatManager;
 
         private IChatManagerServer ChatManager => _chatManager ?? (EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>());
         private List<ulong> _removeCache;

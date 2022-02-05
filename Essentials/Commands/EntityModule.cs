@@ -25,19 +25,21 @@ namespace Essentials
     [Category("entities")]
     public class EntityModule : CommandModule
     {
+#pragma warning disable IDE0044 // Add readonly modifier
         [ReflectedGetter(Name = "m_clientStates")]
-        public static Func<MyReplicationServer, IDictionary> _clientStates;
+        private static Func<MyReplicationServer, IDictionary> _clientStates;
 
         [ReflectedGetter(TypeName = "VRage.Network.MyClient, VRage", Name = "Replicables")]
-        public static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
+        private static Func<object, MyConcurrentDictionary<IMyReplicable, MyReplicableClientData>> _replicables;
 
         [ReflectedMethod(Name = "RemoveForClient", OverrideTypeNames = new string[] { null, "VRage.Network.MyClient, VRage", null })]
-        public static Action<MyReplicationServer, IMyReplicable, object, bool> _removeForClient;
+        private static Action<MyReplicationServer, IMyReplicable, object, bool> _removeForClient;
 
         [ReflectedMethod(Name = "ForceReplicable")]
-        public static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+        private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+#pragma warning restore IDE0044 // Add readonly modifier
 
-        private static Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
+        private static readonly Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();
 
         [Command("refresh", "Resyncs all entities for the player running the command.")]
         [Permission(MyPromoteLevel.None)]

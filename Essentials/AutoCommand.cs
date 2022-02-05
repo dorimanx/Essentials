@@ -15,8 +15,8 @@ namespace Essentials
 {
     public class AutoCommand : ViewModel
     {
-        private TimeSpan _scheduledTime = TimeSpan.Zero;
-        //private static readonly Logger Log = LogManager.GetLogger("Essentials");
+        //private TimeSpan _scheduledTime = TimeSpan.Zero;
+        private static readonly Logger Log = LogManager.GetLogger("Essentials");
         private TimeSpan _interval = TimeSpan.Zero;
         private DateTime _nextRun = DateTime.MinValue;
         private DayOfWeek _day = DayOfWeek.All;
@@ -187,7 +187,7 @@ namespace Essentials
         {
             _cTokenSource = new CancellationTokenSource();
             var token = _cTokenSource.Token;
-            
+
             await Task.Run(() =>
             {
                 while (!token.IsCancellationRequested)
@@ -203,11 +203,26 @@ namespace Essentials
                     }
                 }
             }, token);
-            
+
             _cTokenSource.Dispose();
         }
 
+        internal void Cancel()
+        {
+            Log.Info($"Cancelling autocommand {_name}");
+            _cTokenSource?.Cancel();
+            _currentStep = 0;
+            _nextRun = _trigger == Trigger.Scheduled
+                ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
+                : _nextRun = DateTime.Now + _interval;
+        }
+
         public override string ToString() => $"{Name} : {_trigger} : {Steps.Count}";
+
+        internal bool IsRunning()
+        {
+            return _currentStep > 0 || _cTokenSource != null && _cTokenSource?.IsCancellationRequested == false;
+        }
     }
 
     public enum Gtl
