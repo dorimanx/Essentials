@@ -52,18 +52,6 @@ namespace Essentials
             set => SetValue(ref _name, value);
         }
 
-        //[Display(Name = "Scheduled Time", GroupName = "Schedule", Description = "Sets a time of day for this command to be run. Format is HH:MM:SS. MUST use 24 hour format! Will be reset to zero if Interval is set.")]
-        [Display(Visible = false)]
-        public string ScheduledTime
-        {
-            get => _scheduledTime.ToString();
-            set
-            {
-                _scheduledTime = TimeSpan.Parse(value);
-                OnPropertyChanged();
-            }
-        }
-
         [Display(Order = 2, Description = "Sets an interval/Time for this command to be repeated. Format is HH:MM:SS.")]
         public string Interval
         {
@@ -74,7 +62,6 @@ namespace Essentials
                 OnPropertyChanged();
                 if (CommandTrigger == Trigger.Timed)
                 {
-                    //ScheduledTime = TimeSpan.Zero.ToString(); //I hate myself for this **FIXED!!!***
                     _nextRun = DateTime.Now + _interval;
                 }
 
@@ -145,6 +132,7 @@ namespace Essentials
 
             if (_currentStep < Steps.Count) return;
             _currentStep = 0;
+            _cTokenSource?.Dispose();
             _nextRun = _trigger == Trigger.Scheduled
                     ? DateTime.Now.Date + _interval + TimeSpan.FromDays(1)
                     : _nextRun = DateTime.Now + _interval;
@@ -190,19 +178,33 @@ namespace Essentials
             }
         }
 
+        private CancellationTokenSource _cTokenSource;
+
         /// <summary>
         /// Runs the command and all steps immediately, in a new thread
         /// </summary>
-        internal void RunNow()
+        internal async void RunNow()
         {
-            Task.Run(() =>
+            _cTokenSource = new CancellationTokenSource();
+            var token = _cTokenSource.Token;
+            
+            await Task.Run(() =>
             {
-                foreach (var step in Steps)
+                while (!token.IsCancellationRequested)
                 {
-                    step.RunStep();
-                    Thread.Sleep(step.DelaySpan);
+                    foreach (var step in Steps)
+                    {
+                        if (token.IsCancellationRequested)
+                        {
+                            break;
+                        }
+                        step.RunStep();
+                        Thread.Sleep(step.DelaySpan);
+                    }
                 }
-            });
+            }, token);
+            
+            _cTokenSource.Dispose();
         }
 
         public override string ToString() => $"{Name} : {_trigger} : {Steps.Count}";
@@ -215,7 +217,6 @@ namespace Essentials
         Equal
     }
 
-    //TODO Remove Scheduled
     public enum Trigger
     {
         Disabled,
