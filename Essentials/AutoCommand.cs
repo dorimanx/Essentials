@@ -26,6 +26,7 @@ namespace Essentials
         private string _name;
         private float _triggerRatio;
         private double _triggerCount;
+        private bool _isRunning;
 
         [XmlIgnore]
         public bool Completed { get; set; }
@@ -187,24 +188,22 @@ namespace Essentials
         {
             _cTokenSource = new CancellationTokenSource();
             var token = _cTokenSource.Token;
-
+            _isRunning = true;
             await Task.Run(() =>
             {
-                while (!token.IsCancellationRequested)
+                foreach (var step in Steps)
                 {
-                    foreach (var step in Steps)
+                    if (token.IsCancellationRequested)
                     {
-                        if (token.IsCancellationRequested)
-                        {
-                            break;
-                        }
-                        step.RunStep();
-                        Thread.Sleep(step.DelaySpan);
+                        break;
                     }
+                    step.RunStep();
+                    Thread.Sleep(step.DelaySpan);
                 }
             }, token);
 
             _cTokenSource.Dispose();
+            _isRunning = false;
         }
 
         internal void Cancel()
@@ -221,7 +220,7 @@ namespace Essentials
 
         internal bool IsRunning()
         {
-            return _currentStep > 0 || _cTokenSource != null && _cTokenSource?.IsCancellationRequested == false;
+            return _currentStep > 0 || _isRunning;
         }
     }
 
