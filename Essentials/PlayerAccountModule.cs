@@ -193,13 +193,17 @@ namespace Essentials
 
                 PlayerAccountData data = new PlayerAccountData();
                 bool found = false;
+
                 foreach (var Account in PlayersAccounts)
                 {
                     if (Account.SteamID == steamid)
                     {
-                        if (Account.IdentityID == 0L && Account.Player != string.Empty)
+                        if (!Account.KnownIps.Contains(ip.ToString()) && ip.ToString() != "0.0.0.0")
+                            Account.KnownIps.Add(ip.ToString());
+
+                        if (Account.IdentityID == 0L && !string.IsNullOrEmpty(Account.Player))
                         {
-                            Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player).IdentityId;
+                            Account.IdentityID = Utilities.GetIdentityByNameOrIds(Account.Player)?.IdentityId ?? 0L;
                             UpdatePlayerAccount(Account);
                         }
 

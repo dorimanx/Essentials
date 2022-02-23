@@ -23,7 +23,6 @@ namespace Essentials
         public EssentialsConfig()
         {
             AutoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
-            KnownSteamIds.CollectionChanged += (sender, args) => OnPropertyChanged();
             InfoCommands.CollectionChanged += (sender, args) => OnPropertyChanged();
         }
 
@@ -94,9 +93,6 @@ namespace Essentials
             get => _backpackLimit;
             set => SetValue(ref _backpackLimit, value);
         }
-
-        [Display(Visible = false)]
-        public ObservableCollection<ulong> KnownSteamIds { get; } = new ObservableCollection<ulong>();
 
         private MyObjectBuilder_Toolbar _vanillaBacking;
 
