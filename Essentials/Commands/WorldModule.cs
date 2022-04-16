@@ -46,30 +46,27 @@ namespace Essentials.Commands
             var count = 0;
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
+            var removeIds = new List<MyIdentity>();
 
             CleanGPSSandbox(days);
             CleanSandboxBankAccounts(days);
 
-            foreach (var identity in idents)
+            foreach (var identity in idents.Where(identity => identity.LastLoginTime < cutoff))
             {
-                if (identity.LastLoginTime < cutoff)
-                {
-                    if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
-                        continue;
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
 
-                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
 
-                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
-                        continue;
+                if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                    continue;
 
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    count++;
-                }
+                count++;
+                removeIds.Add(identity);
             }
 
+            FixGridOwnership(new List<long>(removeIds.Select(x => x.IdentityId)), false);
             RemoveEmptyFactions();
-            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities");
         }
 
@@ -79,41 +76,37 @@ namespace Essentials.Commands
         {
             var count = 0;
             var count2 = 0;
-            var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
+            var removeIds = new List<MyIdentity>();
             var idents = MySession.Static.Players.GetAllIdentities().ToList();
             var cutoff = DateTime.Now - TimeSpan.FromDays(days);
 
             CleanGPSSandbox(days);
             CleanSandboxBankAccounts(days);
 
-            foreach (var identity in idents)
+            foreach (var identity in idents.Where(identity => identity.LastLoginTime < cutoff))
             {
-                if (identity.LastLoginTime < cutoff)
-                {
-                    if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
-                        continue;
+                if (identity == null || MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                    continue;
 
-                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
 
-                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
-                        continue;
+                if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
+                    continue;
 
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    count++;
-                    foreach (var grid in grids)
-                    {
-                        if (grid.BigOwners.Contains(identity.IdentityId))
-                        {
-                            grid.Close();
-                            count2++;
-                        }
-                    }
-                }
+                count++;
+                removeIds.Add(identity);
             }
 
+            if (count == 0)
+            {
+                Context.Respond($"No old identity found past {days}");
+                return;
+            }
+
+            count2 = FixGridOwnership(new List<long>(removeIds.Select(x => x.IdentityId)));
+            RemoveFromFaction_Internal(removeIds);
+
             RemoveEmptyFactions();
-            FixBlockOwnership();
             Context.Respond($"Removed {count} old identities and {count2} grids owned by them.");
         }
 
@@ -121,51 +114,27 @@ namespace Essentials.Commands
         [Permission(MyPromoteLevel.Admin)]
         public void PurgeIdentity(string playername)
         {
-            var count2 = 0;
-            var GpsCount = 0;
-            var grids = MyEntities.GetEntities().OfType<MyCubeGrid>().ToList();
-            var idents = MySession.Static.Players.GetAllIdentities().ToList();
+            int count;
             var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
-            var idCache = new HashSet<long>();
+            var id = Utilities.GetIdentityByNameOrIds(playername);
 
-            foreach (var identity in idents)
+            if (id == null)
             {
-                if (identity.DisplayName == playername)
-                {
-                    var PlayerSteamID = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
-
-                    if (PlayerSteamID > 0 && MySession.Static.IsUserAdmin(PlayerSteamID))
-                        continue;
-
-                    MyBankingSystem.RemoveAccount_Clients(identity.IdentityId);
-                    idCache.Add(identity.IdentityId);
-                    RemoveFromFaction_Internal(identity);
-                    MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                    foreach (var grid in grids)
-                    {
-                        if (grid.BigOwners.Contains(identity.IdentityId))
-                        {
-                            grid.Close();
-                            count2++;
-                        }
-                    }
-                }
+                Context.Respond($"No Identity found for {playername}.  Try Again");
+                return;
             }
 
-            if (idCache.Count > 0)
-            {
-                foreach (var id in idCache.ToList())
-                {
-                    if (playerGpss.ContainsKey(id))
-                        playerGpss.Remove(id);
-                }
-                GpsCount += idCache.Count;
-            }
-            idCache.Clear();
+            var PlayerSteamID = MySession.Static.Players.TryGetSteamId(id.IdentityId);
 
+            if (PlayerSteamID > 0 && !MySession.Static.IsUserAdmin(PlayerSteamID))
+                MyBankingSystem.RemoveAccount_Clients(id.IdentityId);
+
+            if (playerGpss.ContainsKey(id.IdentityId))
+                playerGpss.Remove(id.IdentityId);
+
+            count = FixGridOwnership(new List<long> { id.IdentityId });
             RemoveEmptyFactions();
-            FixBlockOwnership();
-            Context.Respond($"Removed identity and {count2} grids owned by them, also bank account and {GpsCount} GPS Inventory.");
+            Context.Respond($"Removed identity and {count} grids owned by them, also bank account and GPS Inventory.");
         }
 
         [Command("rep wipe", "Resets the reputation on the server")]
@@ -279,6 +248,15 @@ namespace Essentials.Commands
             return result;
         }
 
+        private static void RemoveFromFaction_Internal(List<MyIdentity> Ids)
+        {
+            foreach (var identity in Ids)
+            {
+                RemoveFromFaction_Internal(identity);
+                MySession.Static.Players.RemoveIdentity(identity.IdentityId);
+            }
+        }
+
         private static bool RemoveFromFaction_Internal(MyIdentity identity)
         {
             var fac = MySession.Static.Factions.GetPlayerFaction(identity.IdentityId);
@@ -317,6 +295,36 @@ namespace Essentials.Commands
                 return;
 
             MyAPIGateway.Session.Factions.RemoveFaction(faction.FactionId); //Added to remove factions that got through the crack
+        }
+
+        private static int FixGridOwnership(List<long> Ids, bool deleteGrids = true)
+        {
+            if (Ids.Count == 0) return 0;
+            var grids = new List<MyCubeGrid>(MyEntities.GetEntities().OfType<MyCubeGrid>());
+            int count = 0;
+            foreach (var id in Ids)
+            {
+                if (id == 0) continue;
+                foreach (var grid in grids.Where(grid => grid.BigOwners.Contains(id)))
+                {
+                    if (grid.BigOwners.Count > 1)
+                    {
+                        var newOwnerId = grid.BigOwners.FirstOrDefault(x => x != id);
+                        grid.TransferBlocksBuiltByID(id, newOwnerId);
+                        foreach (var gridCubeBlock in grid.CubeBlocks.Where(x => x.OwnerId == id))
+                        {
+                            grid.ChangeOwner(gridCubeBlock.FatBlock, id, newOwnerId);
+                        }
+                        grid.RecalculateOwners();
+                        continue;
+                    }
+                    if (deleteGrids) grid.Close();
+                    count++;
+                }
+            }
+
+            return count;
+
         }
 
         private static int FixBlockOwnership()
@@ -369,7 +377,7 @@ namespace Essentials.Commands
             //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
-                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId))
+                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId) || string.IsNullOrEmpty(identity.DisplayName))
                 {
                     validIdentities.Add(identity.IdentityId);
                     continue;
