@@ -4,6 +4,7 @@ using Sandbox.Engine.Multiplayer;
 using VRage.Game.ObjectBuilders.Components;
 using Torch.Managers.PatchManager;
 using VRage.Game;
+using System.Collections.Generic;
 
 namespace Essentials.Patches
 {
@@ -46,11 +47,7 @@ namespace Essentials.Patches
                     Identity.LastDeathPosition = null;
             }
 
-            //I dont trust keen to do it
-            worldData.Checkpoint.Gps.Dictionary.TryGetValue(senderIdentity, out MyObjectBuilder_Gps value);
-            worldData.Checkpoint.Gps.Dictionary.Clear();
-            if (value != null)
-                worldData.Checkpoint.Gps.Dictionary.Add(senderIdentity, value);
+            // Gps is filtered in KEEN code OnWorldRequest player get only his ID gps list.
 
             foreach (var SessionComponent in worldData.Checkpoint.SessionComponents)
             {

@@ -186,16 +186,34 @@ namespace Essentials.Commands
                 Context.Respond("Console cannot execute this command");
                 return;
             }
+
             var p = Utilities.GetPlayerByNameOrId(Player);
             if (p == null)
             {
                 Context.Respond("Player is not online or cannot be found!");
                 return;
             }
-            MyBankingSystem.RequestTransfer(Context.Player.Identity.IdentityId, p.IdentityId, amount);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount} credits from {Context.Player}!", 10000, "Blue"), p.SteamUserId);
-            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"), Context.Player.SteamUserId);
-        }
 
+            if (amount <= 0)
+            {
+                Context.Respond("Amount is wrong, need to be higher than 0");
+                return;
+            }
+
+            var SenderPlayerID = Context.Player.Identity.IdentityId;
+
+            MyBankingSystem.Static.TryGetAccountInfo(SenderPlayerID, out MyAccountInfo info);
+
+            if (info.Balance >= amount)
+            {
+                MyBankingSystem.ChangeBalance(SenderPlayerID, amount);
+                MyBankingSystem.ChangeBalance(p.IdentityId, amount);
+
+                ModCommunication.SendMessageTo(new NotificationMessage($"You have recieved {amount} credits from {Context.Player}!", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"You have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"), Context.Player.SteamUserId);
+            }
+            else
+                ModCommunication.SendMessageTo(new NotificationMessage($"You dont have {amount} credits to sent to {p.DisplayName}! ABORT", 10000, "Blue"), Context.Player.SteamUserId);
+        }
     }
 }
