@@ -36,6 +36,7 @@ namespace Essentials.Commands
         private static MyProceduralAsteroidCellGenerator GeneratorInstance => _generatorInstance ?? (_generatorInstance = _asteroidGenerator(MyProceduralWorldGenerator.Static));
 
         [Command("reset all", "Resets all voxel maps.")]
+        [Permission(MyPromoteLevel.Admin)]
         public void ResetAll(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelBase>();
@@ -77,6 +78,7 @@ namespace Essentials.Commands
         }
 
         [Command("cleanup asteroids", "Resets all asteroids that don't have a grid or player nearby.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanupAsteroids(bool deleteStorage = false)
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
@@ -126,9 +128,9 @@ namespace Essentials.Commands
         }
 
         [Command("cleanup distant", "Resets all asteroids that don't have a grid or player inside the specified radius.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanupAsteroidsDistant(double distance = 1000, bool deleteStorage = false)
         {
-
             var voxelMaps = MyEntities.GetEntities().OfType<MyVoxelMap>();
 
             var resetIds = new List<long>();
@@ -176,6 +178,7 @@ namespace Essentials.Commands
         }
 
         [Command("reset planets", "Resets all planets.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void ResetPlanets()
         {
             var voxelMaps = MyEntities.GetEntities().OfType<MyPlanet>();
@@ -204,6 +207,7 @@ namespace Essentials.Commands
         }
 
         [Command("reset planet", "Resets the planet with a given name.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void ResetPlanet(string planetName)
         {
             var maps = new List<MyPlanet>(2);
@@ -283,7 +287,6 @@ namespace Essentials.Commands
 
         private static bool ResetVoxelInArea(Vector3D Center, float Radius)
         {
-
             try
             {
                 BoundingSphereD Sphere = new BoundingSphereD(Center, Radius);
@@ -316,7 +319,6 @@ namespace Essentials.Commands
                         Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref StorageSize, out minCorner);
                         Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref StorageSize, out maxCorner);
                         numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
-
 
                         minCorner = Vector3I.Max(Vector3I.One, minCorner);
                         maxCorner = Vector3I.Max(minCorner, maxCorner - Vector3I.One);

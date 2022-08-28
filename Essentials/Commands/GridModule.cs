@@ -207,6 +207,7 @@ namespace Essentials
         private readonly string ExportPath = "ExportedGrids\\{0}.xml";
 
         [Command("export", "Export the given grid to the given file name.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void Export(string gridName, string exportName)
         {
             Directory.CreateDirectory("ExportedGrids");
@@ -228,6 +229,7 @@ namespace Essentials
         }
 
         [Command("import", "Import a grid from file and spawn it by the given entity/player.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void Import(string gridName, string targetName = null)
         {
             Directory.CreateDirectory("ExportedGrids");

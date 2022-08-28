@@ -297,6 +297,7 @@ namespace Essentials.Commands
         private List<ulong> _removeCache;
 
         [Command("mute", "Mutes a user in global chat for the given number of minutes.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void MuteUser(string user, int timeout = 0)
         {
             if (_muteTimer == null)
@@ -357,6 +358,7 @@ namespace Essentials.Commands
         }
 
         [Command("unmute", "Removes a chat mute from a user, if they have been muted.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void UnmuteUser(string user)
         {
             var p = Utilities.GetPlayerByNameOrId(user);

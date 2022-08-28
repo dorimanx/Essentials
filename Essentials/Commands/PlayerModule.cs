@@ -143,7 +143,7 @@ namespace Essentials
         }
 
         [Command("unban", "Unban a player from the game.")]
-        [Permission(MyPromoteLevel.Moderator)]
+        [Permission(MyPromoteLevel.Admin)]
         public void Unban(string nameOrSteamId)
         {
             var man = Context.Torch.CurrentSession.Managers.GetManager<IMultiplayerManagerServer>();

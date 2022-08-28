@@ -138,6 +138,7 @@ namespace Essentials.Commands
         }
 
         [Command("rep wipe", "Resets the reputation on the server")]
+        [Permission(MyPromoteLevel.Admin)]
         public void WipeReputation(bool removePlayerToFaction = true, bool removeFactionToFaction = true)
         {
             var count = WipeRep(removePlayerToFaction, removeFactionToFaction);
@@ -145,6 +146,7 @@ namespace Essentials.Commands
         }
 
         [Command("faction clean", "Removes factions with fewer than the given number of players.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void CleanFactions(int memberCount = 1)
         {
             int count = CleanFaction_Internal(memberCount);
@@ -350,7 +352,7 @@ namespace Essentials.Commands
         }
 
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
-        [Permission(MyPromoteLevel.SpaceMaster)]
+        [Permission(MyPromoteLevel.Admin)]
         public void CleanSandbox()
         {
             int count = 0;
@@ -455,7 +457,7 @@ namespace Essentials.Commands
         }
 
         [Command("gps clean", "Cleans up old GPS marks from the sandbox file, for identities that have not logged on in X days")]
-        [Permission(MyPromoteLevel.SpaceMaster)]
+        [Permission(MyPromoteLevel.Admin)]
         public void CleanGPSSandbox(int days)
         {
             if (days <= 0)

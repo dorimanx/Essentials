@@ -283,7 +283,6 @@ namespace Essentials.Commands
             }
         }
 
-
         public void VoteEnd()
         {
             //Make sure it's all good for next round
@@ -293,9 +292,6 @@ namespace Essentials.Commands
             _voteReg.Clear();
         }
 
-        private string Pluralize(double num)
-        {
-            return num == 1 ? "" : "s";
-        }
+        private string Pluralize(double num) => num == 1 ? "" : "s";
     }
 }

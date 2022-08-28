@@ -9,8 +9,10 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Torch.Commands;
+using Torch.Commands.Permissions;
 using Torch.Mod;
 using Torch.Mod.Messages;
+using VRage.Game.ModAPI;
 using Vector3D = VRageMath.Vector3D;
 
 namespace Essentials.Commands
@@ -21,6 +23,7 @@ namespace Essentials.Commands
         private static readonly Logger Log = LogManager.GetLogger("Essentials");
 
         [Command("scan", "Find grids matching the given conditions")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void Scan()
         {
             var count = ScanConditions(Context.Args).Count();
@@ -44,6 +47,7 @@ namespace Essentials.Commands
         }
 
         [Command("delete", "Delete grids matching the given conditions")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void Delete()
         {
             try
@@ -71,6 +75,7 @@ namespace Essentials.Commands
         }
 
         [Command("delete floatingobjects", "deletes floating objects")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void FlObjDelete()
         {
             try

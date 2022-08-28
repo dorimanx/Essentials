@@ -5,6 +5,8 @@ using Sandbox.Common.ObjectBuilders;
 using Sandbox.Game.Entities;
 using Sandbox.Game.Entities.Cube;
 using Torch.Commands;
+using Torch.Commands.Permissions;
+using VRage.Game.ModAPI;
 
 namespace Essentials.Commands
 {
@@ -13,6 +15,7 @@ namespace Essentials.Commands
     public class BlocksModule : CommandModule
     {
         [Command("on type", "Turn on all blocks of the given type.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OnType(string type)
         {
             var count = 0;
@@ -34,6 +37,7 @@ namespace Essentials.Commands
         }
 
         [Command("on subtype", "Turn on all blocks of the given subtype.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OnSubtype(string subtype)
         {
             var count = 0;
@@ -55,6 +59,7 @@ namespace Essentials.Commands
         }
 
         [Command("off type", "Turn off all blocks of the given type.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OffType(string type)
         {
             var count = 0;
@@ -71,11 +76,11 @@ namespace Essentials.Commands
                 }
             }
 
-
             Context.Respond($"Disabled {count} blocks of type {type}.");
         }
 
         [Command("remove subtype", "remove all blocks of the given subtype.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void RemoveSubtype(string subtype)
         {
             var toRemove = new List<MySlimBlock>();
@@ -95,6 +100,7 @@ namespace Essentials.Commands
         }
 
         [Command("remove type", "remove all blocks of the given type.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void RemoveType(string type)
         {
             var toRemove = new List<MySlimBlock>();
@@ -114,6 +120,7 @@ namespace Essentials.Commands
         }
 
         [Command("off subtype", "Turn off all blocks of the given subtype.")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OffSubtype(string subtype)
         {
             var count = 0;
@@ -131,11 +138,11 @@ namespace Essentials.Commands
                 }
             }
 
-
             Context.Respond($"Disabled {count} blocks of subtype {subtype}.");
         }
 
         [Command("on general", "Turn on all blocks of the specified category")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OnGeneral(string category)
         {
             var count = 0;
@@ -153,8 +160,6 @@ namespace Essentials.Commands
                         }
                     }
                 }
-
-
             }
             else
             {
@@ -162,13 +167,11 @@ namespace Essentials.Commands
                 return;
             }
 
-
-
             Context.Respond($"Enabled {count} {category} blocks.");
         }
 
-
         [Command("off general", "Turn off all blocks of the specified category")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void OffGeneral(string category)
         {
             var count = 0;
@@ -196,11 +199,8 @@ namespace Essentials.Commands
                 return;
             }
 
-
-
             Context.Respond($"Disabled {count} {category} blocks.");
         }
-
 
         public bool IsBlockTypeOf(MyFunctionalBlock block, BlockCategory category)
         {
@@ -232,5 +232,4 @@ namespace Essentials.Commands
 
         }
     }
-
 }

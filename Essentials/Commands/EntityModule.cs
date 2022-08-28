@@ -258,6 +258,7 @@ namespace Essentials
         }
 
         [Command("eject", "Ejects a specific player from any block they are seated in, or all players in the server if run with 'all'")]
+        [Permission(MyPromoteLevel.SpaceMaster)]
         public void Eject(string playerName)
         {
             if (playerName.ToLower() == "all")
