@@ -27,6 +27,7 @@ using VRage.Game.Entity;
 using VRageMath;
 using Newtonsoft.Json;
 using SpaceEngineers.Game.World;
+using Sandbox.Engine.Multiplayer;
 
 namespace Essentials
 {
@@ -55,10 +56,7 @@ namespace Essentials
         /// <inheritdoc />
         public UserControl GetControl() => _control ?? (_control = new PropertyGrid() { DataContext = Config/*, IsEnabled = false*/});
 
-        public void Save()
-        {
-            _config.Save();
-        }
+        public void Save() => _config.Save();
 
         /// <inheritdoc />
 
@@ -185,11 +183,7 @@ namespace Essentials
             bags.Add(b);
         }
 
-
-        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData)
-        {
-            PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
-        }
+        public static void InsertDiscordID(ulong steamID, string discordID, string discordName, Dictionary<ulong, string> RoleData) => PlayerAccountModule.InsertDiscord(steamID, discordID, discordName, RoleData);
 
         private void ProcessBags()
         {
@@ -226,10 +220,7 @@ namespace Essentials
             }
         }
 
-        public override void Update()
-        {
-            ProcessBags();
-        }
+        public override void Update() => ProcessBags();
 
         private void StopShips()
         {
@@ -239,39 +230,48 @@ namespace Essentials
             }
         }
 
-        private void ResetMotdOnce(IPlayer player)
+        private int CheckFreeSlots()
         {
-            _motdOnce.Remove(player.SteamId);
+            if (MySession.Static == null || !MySession.Static.Ready || MyMultiplayer.Static == null)
+                return 0;
+
+            return MySession.Static.MaxPlayers - MySession.Static.Players.GetOnlinePlayers().Count;
         }
 
-        private void MotdOnce(IPlayer player)
+        private void ResetMotdOnce(IPlayer player) => _motdOnce.Remove(player.SteamId);
+
+        private async void MotdOnce(IPlayer player)
         {
-            //TODO: REMOVE ALL THIS TRASH!
-            //implement a PlayerSpawned event in Torch. This will work for now.
-            Task.Run(() =>
-                     {
-                         var start = DateTime.Now;
-                         var timeout = TimeSpan.FromMinutes(5);
-                         var pid = new MyPlayer.PlayerId(player.SteamId, 0);
-                         while (DateTime.Now - start <= timeout)
-                         {
-                             if (!MySession.Static.Players.TryGetPlayerById(pid, out MyPlayer p) || p.Character == null)
-                             {
-                                 Thread.Sleep(1000);
-                                 continue;
-                             }
+            // fixed the CPU drain from this code, we can keep it now.
 
-                             Torch.Invoke(() =>
-                                          {
-                                              if (_motdOnce.Contains(player.SteamId))
-                                                  return;
+            if (CheckFreeSlots() == 0)
+                return;
 
-                                              SendMotd(p, true);
-                                              _motdOnce.Add(player.SteamId);
-                                          });
-                             break;
-                         }
-                     });
+            await Task.Run(() =>
+                       {
+                           var start = DateTime.Now;
+                           var timeout = TimeSpan.FromMinutes(3);
+                           var pid = new MyPlayer.PlayerId(player.SteamId, 0);
+
+                           while (DateTime.Now - start <= timeout)
+                           {
+                               if (!MySession.Static.Players.TryGetPlayerById(pid, out MyPlayer p) || p?.Character == null)
+                               {
+                                   Thread.Sleep(5000);
+                                   continue;
+                               }
+
+                               Torch.Invoke(() =>
+                                            {
+                                                if (_motdOnce.Contains(player.SteamId))
+                                                    return;
+
+                                                SendMotd(p, true);
+                                                _motdOnce.Add(player.SteamId);
+                                            });
+                               break;
+                           }
+                       });
         }
 
         public void SendMotd(MyPlayer player, bool onSessionChanged)
