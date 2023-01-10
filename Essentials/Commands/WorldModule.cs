@@ -351,6 +351,80 @@ namespace Essentials.Commands
             return count;
         }
 
+        [Command("ainpc clean", "Cleans up NPC junk data from the sandbox file")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void AI_NPC_Clean()
+        {
+            int count = 0;
+            var validIdentities = new HashSet<long>();
+            var idCache = new HashSet<long>();
+
+            //find all identities owning a block
+            foreach (var entity in MyEntities.GetEntities())
+            {
+                if (!(entity is MyCubeGrid grid))
+                    continue;
+
+                validIdentities.UnionWith(grid.SmallOwners);
+            }
+
+            foreach (var online in MySession.Static.Players.GetOnlinePlayers())
+            {
+                validIdentities.Add(online.Identity.IdentityId);
+            }
+
+            //might not be necessary, but just in case
+            validIdentities.Remove(0);
+
+            List<string> npc_model = new List<string> { "Shadow_Bot", "Space_Zombie", "Drone_Bot", "Alien_OB", "Mutant" };
+
+            foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
+            {
+                if (npc_model.Contains(identity.Model)) // Доп проверки для НПС не реализуем т.к. чистим всех
+                {
+                    RemoveFromFaction_Internal(identity);
+
+                    // Две строчки ниже по ощущениям тот еще костыль
+                    MySession.Static.Players.TryGetPlayerId(identity.IdentityId, out MyPlayer.PlayerId player_id);
+
+                    if (MySession.Static.Players.TryGetPlayerById(player_id, out MyPlayer player))
+                    {
+                        MySession.Static.Players.RemovePlayer(player, true);
+                        count++;
+                    }
+
+                    MySession.Static.Players.RemoveIdentity(identity.IdentityId, default);
+                    validIdentities.Remove(identity.IdentityId); // Удаляем айдишник НПС из списка валидных чтобы почистило репу и остальной мусор
+                    count++;
+                }
+            }
+
+            //reset ownership of blocks belonging to deleted identities
+            count += FixBlockOwnership();
+
+            //clean up empty factions
+            count += CleanFaction_Internal();
+
+            //cleanup reputations
+            count += CleanupReputations();
+
+            //Keen, for the love of god why is everything about GPS internal.
+            var playerGpss = GpsDicField.GetValue(MySession.Static.Gpss) as Dictionary<long, Dictionary<int, MyGps>>;
+            foreach (var id in playerGpss.Keys)
+            {
+                if (!validIdentities.Contains(id))
+                    idCache.Add(id);
+            }
+
+            foreach (var id in idCache)
+                playerGpss.Remove(id);
+
+            count += idCache.Count;
+            idCache.Clear();
+
+            Context.Respond($"Removed {count} unnecessary AI-NPC elements.");
+        }
+
         [Command("sandbox clean", "Cleans up junk data from the sandbox file")]
         [Permission(MyPromoteLevel.Admin)]
         public void CleanSandbox()
@@ -376,22 +450,44 @@ namespace Essentials.Commands
             //might not be necessary, but just in case
             validIdentities.Remove(0);
 
-            //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
+            List<string> npc_model = new List<string> {"Shadow_Bot", "Space_Zombie", "Drone_Bot", "Alien_OB", "Mutant"};
+
             foreach (var identity in MySession.Static.Players.GetAllIdentities().ToList())
             {
-                if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId) || string.IsNullOrEmpty(identity.DisplayName))
+                if (npc_model.Contains(identity.Model)) // Доп проверки для НПС не реализуем т.к. чистим всех
                 {
-                    validIdentities.Add(identity.IdentityId);
-                    continue;
+                    RemoveFromFaction_Internal(identity);
+
+                    // Две строчки ниже по ощущениям тот еще костыль
+                    MySession.Static.Players.TryGetPlayerId(identity.IdentityId, out MyPlayer.PlayerId player_id);
+
+                    if (MySession.Static.Players.TryGetPlayerById(player_id, out MyPlayer player))
+                    {
+                        MySession.Static.Players.RemovePlayer(player, true);
+                        count++;
+                    }
+
+                    MySession.Static.Players.RemoveIdentity(identity.IdentityId, default);
+                    validIdentities.Remove(identity.IdentityId); // Удаляем айдишник НПС из списка валидных чтобы почистило репу и остальной мусор
+                    count++;
                 }
+                else
+                {
+                    //clean identities that don't own any blocks, or don't have a steam ID for whatever reason
+                	if (MySession.Static.Players.IdentityIsNpc(identity.IdentityId) || string.IsNullOrEmpty(identity.DisplayName))
+                	{
+                    	validIdentities.Add(identity.IdentityId);
+                    	continue;
+                	}
 
-                if (validIdentities.Contains(identity.IdentityId))
-                    continue;
+                	if (validIdentities.Contains(identity.IdentityId))
+                    	continue;
 
-                RemoveFromFaction_Internal(identity);
-                MySession.Static.Players.RemoveIdentity(identity.IdentityId);
-                validIdentities.Remove(identity.IdentityId);
-                count++;
+                	RemoveFromFaction_Internal(identity);
+                    MySession.Static.Players.RemoveIdentity(identity.IdentityId, default);
+                	validIdentities.Remove(identity.IdentityId);
+                	count++;
+                }
             }
 
             //reset ownership of blocks belonging to deleted identities

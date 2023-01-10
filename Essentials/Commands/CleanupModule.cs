@@ -396,7 +396,6 @@ namespace Essentials.Commands
                     return grid.BigOwners.Count > 0 &&
                            pirateFaction.Members.ContainsKey(grid.BigOwners.FirstOrDefault());
                 }
-
             }
             else
             {
