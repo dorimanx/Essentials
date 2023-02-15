@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using Torch.API;
 using VRage.GameServices;
 using VRage.Network;
 using VRageMath;
@@ -269,12 +270,19 @@ namespace Essentials
             var state = new MyP2PSessionState();
             Sandbox.Engine.Networking.MyGameService.Peer2Peer.GetSessionState(steamid, ref state);
             var ip = new IPAddress(BitConverter.GetBytes(state.RemoteIP).Reverse().ToArray());
+            var PlayerList = new Dictionary<IPlayer, int>();
 
             foreach (var account in PlayersAccounts)
             {
                 if (account.KnownIps.Contains(ip.ToString()) && account.Player != Player.Name)
                 {
-                    Log.Warn($"WARNING! {Player.Name} shares the same IP address as {account.Player}");
+                    if (PlayerList.ContainsKey(Player))
+                        PlayerList[Player] += 1;
+                    else
+                        PlayerList.Add(Player, 1);
+
+                    if (PlayerList.TryGetValue(Player, out int Number) && Number <= 3)
+                        Log.Warn($"WARNING! {Player.Name} shares the same IP address as {account.Player}");
                 }
             }
         }
