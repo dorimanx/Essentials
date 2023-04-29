@@ -118,7 +118,6 @@ namespace Essentials
         }
         public bool RankHasPermission(string rank, string cmd, ulong forSteamID)
         {
-            Dictionary<string, List<string>> InheritedPerms = new Dictionary<string, List<string>>();
             RankData data = GetRankData(rank);
             PlayerAccountModule.PlayerAccountData Account = PlayerAccountModule.GetAccount(forSteamID);
             if (data == null)
@@ -133,7 +132,7 @@ namespace Essentials
              */
             if (data.Inherits.Count != 0)
             {
-                InheritedPerms = GetInheritPermList(forSteamID);
+                Dictionary<string, List<string>> InheritedPerms = GetInheritPermList(forSteamID);
 
                 if (InheritedPerms["Allowed"].Contains("*") && !InheritedPerms["Disallowed"].Contains(cmd))
                 {

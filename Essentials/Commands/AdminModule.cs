@@ -291,7 +291,9 @@ namespace Essentials.Commands
 
         private static Dictionary<ulong, DateTime> _muted;
         private Timer _muteTimer;
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
         private readonly IChatManagerServer _chatManager;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         private IChatManagerServer ChatManager => _chatManager ?? (EssentialsPlugin.Instance.Torch.CurrentSession.Managers.GetManager<IChatManagerServer>());
         private List<ulong> _removeCache;
@@ -411,7 +413,7 @@ namespace Essentials.Commands
 
         [Command("give", "Insert an item with a specific quanity into a players inventory")]
         [Permission(MyPromoteLevel.Admin)]
-        public void give(string playerName, string itemType, string item, int quantity)
+        public void Give(string playerName, string itemType, string item, int quantity)
         {
             string type = "MyObjectBuilder_" + itemType;
             VRage.Game.MyDefinitionId.TryParse(type, item, out VRage.Game.MyDefinitionId defID);

@@ -22,14 +22,16 @@ namespace Essentials.Commands
     [Category("voxels")]
     public class VoxelModule : CommandModule
     {
-        private static Logger _log = LogManager.GetCurrentClassLogger();
+        private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
 #pragma warning disable CS0649 // is never assigned to, and will always have its default value null
+#pragma warning disable IDE0044 // Add readonly modifier
         [ReflectedGetter(Name = "m_asteroidsModule")]
         private static Func<MyProceduralWorldGenerator, MyProceduralAsteroidCellGenerator> _asteroidGenerator;
 
         [ReflectedSetter(Name = "m_isClosingEntities")]
         private static Action<MyProceduralAsteroidCellGenerator, bool> _deletingSet;
+#pragma warning restore IDE0044 // Add readonly modifier
 #pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         private static MyProceduralAsteroidCellGenerator _generatorInstance;
@@ -302,23 +304,22 @@ namespace Essentials.Commands
                         {
                             continue;
                         }
-                        MyShapeSphere shape = new MyShapeSphere();
-                        shape.Center = Center;
-                        shape.Radius = Radius;
-                        Vector3I minCorner;
-                        Vector3I maxCorner;
-                        Vector3I numCells;
+                        MyShapeSphere shape = new MyShapeSphere
+                        {
+                            Center = Center,
+                            Radius = Radius
+                        };
                         BoundingBoxD shapeAabb = shape.GetWorldBoundaries();
                         Vector3I StorageSize = voxelMap.Storage.Size;
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Min, out minCorner);
-                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Max, out maxCorner);
+                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Min, out Vector3I minCorner);
+                        MyVoxelCoordSystems.WorldPositionToVoxelCoord(voxelMap.PositionLeftBottomCorner, ref shapeAabb.Max, out Vector3I maxCorner);
                         minCorner += voxelMap.StorageMin;
                         maxCorner += voxelMap.StorageMin;
                         maxCorner += 1;
                         StorageSize -= 1;
                         Vector3I.Clamp(ref minCorner, ref Vector3I.Zero, ref StorageSize, out minCorner);
                         Vector3I.Clamp(ref maxCorner, ref Vector3I.Zero, ref StorageSize, out maxCorner);
-                        numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
+                        Vector3I numCells = new Vector3I((maxCorner.X - minCorner.X) / 16, (maxCorner.Y - minCorner.Y) / 16, (maxCorner.Z - minCorner.Z) / 16);
 
                         minCorner = Vector3I.Max(Vector3I.One, minCorner);
                         maxCorner = Vector3I.Max(minCorner, maxCorner - Vector3I.One);

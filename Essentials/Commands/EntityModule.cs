@@ -26,6 +26,7 @@ namespace Essentials
     public class EntityModule : CommandModule
     {
 #pragma warning disable IDE0044 // Add readonly modifier
+#pragma warning disable CS0649 // is never assigned to, and will always have its default value null
         [ReflectedGetter(Name = "m_clientStates")]
         private static Func<MyReplicationServer, IDictionary> _clientStates;
 
@@ -37,6 +38,7 @@ namespace Essentials
 
         [ReflectedMethod(Name = "ForceReplicable")]
         private static Action<MyReplicationServer, IMyReplicable, Endpoint> _forceReplicable;
+#pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 #pragma warning restore IDE0044 // Add readonly modifier
 
         private static readonly Dictionary<ulong, DateTime> _commandtimeout = new Dictionary<ulong, DateTime>();

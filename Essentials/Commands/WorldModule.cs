@@ -33,10 +33,12 @@ namespace Essentials.Commands
         private static readonly FieldInfo AllCamerasField = CamerasField.FieldType.GetField("m_entityCameraSettings", BindingFlags.NonPublic | BindingFlags.Instance);
 
 #pragma warning disable CS0649 // is never assigned to, and will always have its default value null
+#pragma warning disable IDE0044 // Add readonly modifier
         [ReflectedGetter(Name = "m_relationsBetweenFactions", Type = typeof(MyFactionCollection))]
         private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _relationsGet;
         [ReflectedGetter(Name = "m_relationsBetweenPlayersAndFactions", Type = typeof(MyFactionCollection))]
         private static Func<MyFactionCollection, Dictionary<MyFactionCollection.MyRelatablePair, Tuple<MyRelationsBetweenFactions, int>>> _playerRelationsGet;
+#pragma warning restore IDE0044 // Add readonly modifier
 #pragma warning restore CS0649 // is never assigned to, and will always have its default value null
 
         [Command("identity clean", "Remove identities that have not logged on in X days.")]
@@ -277,7 +279,9 @@ namespace Essentials.Commands
             return true;
         }
 
+#pragma warning disable IDE0044 // Add readonly modifier
         private static MethodInfo _factionChangeSuccessInfo = typeof(MyFactionCollection).GetMethod("FactionStateChangeSuccess", BindingFlags.NonPublic | BindingFlags.Static);
+#pragma warning restore IDE0044 // Add readonly modifier
 
         //TODO: This should probably be moved into Torch base, but I honestly cannot be bothered
         /// <summary>
