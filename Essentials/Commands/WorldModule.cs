@@ -217,6 +217,27 @@ namespace Essentials.Commands
                 ModCommunication.SendMessageTo(new DialogMessage("Faction Info", null, sb.ToString()), Context.Player.SteamUserId);
         }
 
+        [Command("faction lock", "Lock free access to factions")]
+        [Permission(MyPromoteLevel.Admin)]
+        public void FactionLock()
+        {
+            var LockedFaction = 0;
+
+            foreach (var factionID in MySession.Static.Factions)
+            {
+                if (factionID.Value.AutoAcceptMember)
+                {
+                    factionID.Value.AutoAcceptMember = false;
+                    LockedFaction += 1;
+                }
+            }
+
+            if (Context.Player == null)
+                Context.Respond($"Locked {LockedFaction} Open Factions");
+            else if (Context?.Player?.SteamUserId > 0)
+                ModCommunication.SendMessageTo(new DialogMessage("Faction Lock", null, $"Locked {LockedFaction} Open Factions"), Context.Player.SteamUserId);
+        }
+
         private static void RemoveEmptyFactions()
         {
             CleanFaction_Internal(1);
