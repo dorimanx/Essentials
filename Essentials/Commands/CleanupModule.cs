@@ -7,6 +7,7 @@ using Torch.Commands;
 using Torch.Commands.Permissions;
 using Torch.Mod;
 using Torch.Mod.Messages;
+using VRage.Game.ModAPI;
 
 namespace Essentials.Commands
 {

@@ -57,7 +57,7 @@ namespace Essentials.Patches
                 if (Rank.DisplayPrefix)
                 {
                     msg.Author = 0;
-                    msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
+                    //msg.CustomAuthorName = $"{Rank.Prefix}{Account.Player}";
                 }
             }
         }

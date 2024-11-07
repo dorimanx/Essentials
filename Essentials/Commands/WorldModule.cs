@@ -927,7 +927,7 @@ namespace Essentials.Commands
                     if (AmountNow.Item2 > amount)
                         continue;
 
-                    _ = MySession.Static.Factions.AddFactionPlayerReputation(PlayerID.IdentityId, NpcFaction.Value.FactionId, amount, true, true);
+                    _ = MySession.Static.Factions.AddFactionPlayerReputation(PlayerID.IdentityId, NpcFaction.Value.FactionId, amount, ReputationChangeReason.Admin, true, true);
                 }
             }
 
