@@ -63,7 +63,7 @@ namespace Essentials
 
                 if (ulong.TryParse(playerNameOrIds, out ulong steamId))
                 {
-                    ulong id = MySession.Static.Players.TryGetSteamId(identity.IdentityId);
+                    ulong id = GetSteamId(identity.IdentityId);
                     if (id == steamId)
                         return identity;
                 }
@@ -94,6 +94,11 @@ namespace Essentials
             }
 
             return null;
+        }
+
+        public static ulong GetSteamId(long identityId) 
+        {
+            return MySession.Static.Players.TryGetSteamId(identityId);
         }
 
         public static int GetOnlinePlayerCount()
