@@ -26,6 +26,7 @@ using Torch.Views;
 using VRage.Game.Entity;
 using VRageMath;
 using Newtonsoft.Json;
+using Sandbox;
 using SpaceEngineers.Game.World;
 using Sandbox.Engine.Multiplayer;
 
@@ -89,6 +90,19 @@ namespace Essentials
 
             if (Instance.Config.EnableRanks)
                 ChatMessagePatch.Patch(_context);
+            
+            if (Config.CutGameTags)
+                GameTagsPatch.Patch(_context);
+            
+            torch.GameStateChanged += TorchOnGameStateChanged;
+        }
+
+        private void TorchOnGameStateChanged(MySandboxGame game, TorchGameState newstate)
+        {
+            if (newstate == TorchGameState.Loading)
+            {
+                ConditionsChecker.Init();
+            }
         }
 
         private void SessionChanged(ITorchSession session, TorchSessionState state)
