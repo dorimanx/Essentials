@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Sandbox.Game.GameSystems.BankingAndCurrency;
@@ -12,8 +12,8 @@ using VRage.Game.ModAPI;
 namespace Essentials.Commands
 {
     [Category("econ")]
-    public class EcoModule : CommandModule
-    {
+    public class EcoModule : CommandModule {
+
         [Command("give", "Add a specified anount of credits into a users account. Use '*' to affect all players")]
         [Permission(MyPromoteLevel.Admin)]
         public void EcoGive(string Player, long amount)
@@ -21,15 +21,14 @@ namespace Essentials.Commands
             if (Player != "*")
             {
                 var p = Utilities.GetPlayerByNameOrId(Player);
-                if (p == null)
-                {
-                    Context.Respond("Player not found");
+                if (p == null) {
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
-                Context.Respond($"new bal will be {balance + amount}");
+                Context.Respond($"new bal will be {balance + amount:#,##0}");
                 p.RequestChangeBalance(amount);
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been added to your virtual account", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been added to your virtual account", 10000, "Blue"), p.SteamUserId);
 
             }
             else
@@ -38,10 +37,10 @@ namespace Essentials.Commands
                 {
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     MyBankingSystem.ChangeBalance(IdentityID, amount);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been added to your virtual account", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been added to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"{amount} credits given to account(s)");
+            Context.Respond($"{amount:#,##0} credits given to account(s)");
         }
 
         [Command("take", "Take a specified anount of credits from a users account. Use '*' to affect all players")]
@@ -51,14 +50,13 @@ namespace Essentials.Commands
             if (Player != "*")
             {
                 var p = Utilities.GetPlayerByNameOrId(Player);
-                if (p == null)
-                {
-                    Context.Respond("Player not found");
+                if (p == null) {
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 long changefactor = 0 - amount;
                 p.RequestChangeBalance(changefactor);
-                ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been taken to your virtual account", 10000, "Blue"), p.SteamUserId);
             }
             else
             {
@@ -67,10 +65,10 @@ namespace Essentials.Commands
                     long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                     //long balance = MyBankingSystem.GetBalance(IdentityID);
                     MyBankingSystem.ChangeBalance(IdentityID, -amount);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"{amount:#,##0} credits have been taken to your virtual account", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"{amount} credits taken from account(s)");
+            Context.Respond($"{amount:#,##0} credits taken from account(s)");
         }
 
         [Command("set", "Set a users account to a specifed balance. Use '*' to affect all players")]
@@ -80,15 +78,14 @@ namespace Essentials.Commands
             if (Player != "*")
             {
                 var p = Utilities.GetPlayerByNameOrId(Player);
-                if (p == null)
-                {
-                    Context.Respond("Player not found");
+                if (p == null) {
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
                 long difference = (balance - amount);
                 p.RequestChangeBalance(-difference);
-                ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount} credits!", 10000, "Blue"), p.SteamUserId);
+                ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount:#,##0} credits!", 10000, "Blue"), p.SteamUserId);
             }
             else
             {
@@ -98,10 +95,10 @@ namespace Essentials.Commands
                     long balance = MyBankingSystem.GetBalance(IdentityID);
                     long difference = (balance - amount);
                     MyBankingSystem.ChangeBalance(IdentityID, -difference);
-                    ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount} credits!", 10000, "Blue"), p.SteamId);
+                    ModCommunication.SendMessageTo(new NotificationMessage($"Your balance has been set to {amount:#,##0} credits!", 10000, "Blue"), p.SteamId);
                 }
             }
-            Context.Respond($"Balance(s) set to {amount}");
+            Context.Respond($"Balance(s) set to {amount:#,##0}");
         }
 
         [Command("reset", "Reset the credits in a users account to 10,000. Use '*' to affect all players")]
@@ -111,9 +108,8 @@ namespace Essentials.Commands
             if (Player != "*")
             {
                 var p = Utilities.GetPlayerByNameOrId(Player);
-                if (p == null)
-                {
-                    Context.Respond("Player not found");
+                if (p == null) {
+                    Context.Respond("Player is not online or cannot be found!");
                     return;
                 }
                 p.TryGetBalanceInfo(out long balance);
@@ -142,17 +138,26 @@ namespace Essentials.Commands
             StringBuilder ecodata = new StringBuilder();
             ecodata.AppendLine("Summary of balanaces accross the server");
             Dictionary<ulong, long> balances = new Dictionary<ulong, long>();
-            foreach (var p in MySession.Static.Players.GetAllPlayers())
-            {
+            foreach (var p in MySession.Static.Players.GetAllPlayers()) {
+
                 long IdentityID = MySession.Static.Players.TryGetIdentityId(p.SteamId);
                 long balance = MyBankingSystem.GetBalance(IdentityID);
-                balances.Add(p.SteamId, balance);
+
+                /*
+                 * Add or Update. We have seen that it is possible to have 
+                 * two players with the same SteamID but different SerialIDs.
+                 * 
+                 * Those also had different identities. But one of which was dead. 
+                 * TryGetIdentityId() Returned the same value in both cases. So no damage done if
+                 * Value is just overwritten.
+                 */
+                balances[p.SteamId] = balance;
             }
             var sorted = balances.OrderByDescending(x => x.Value).ThenBy(x => x.Key);
             foreach (var value in sorted)
             {
                 var test = MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key);
-                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key)} - Balance: {value.Value}");
+                ecodata.AppendLine($"Player: {MySession.Static.Players.TryGetIdentityNameFromSteamId(value.Key)} - Balance: {value.Value:#,##0}");
             }
 
             if (Context.Player == null)
@@ -165,16 +170,14 @@ namespace Essentials.Commands
 
         [Command("check", "Check the balance of a specific player")]
         [Permission(MyPromoteLevel.None)]
-        public void EcoCheck(string Player)
-        {
-            var p = Utilities.GetPlayerByNameOrId(Player);
-            if (p == null)
-            {
-                Context.Respond("Player is not online or cannot be found!");
+        public void EcoCheck(string Player) {
+            var p = Utilities.GetIdentityByNameOrIds(Player);
+            if (p == null) {
+                Context.Respond("Player cannot be found!");
                 return;
             }
-            long balance = MyBankingSystem.GetBalance(p.Identity.IdentityId);
-            Context.Respond($"{p.DisplayName}'s balance is {balance} credits");
+            long balance = MyBankingSystem.GetBalance(p.IdentityId);
+            Context.Respond($"{p.DisplayName}'s balance is {balance:#,##0} credits");
         }
 
         [Command("pay")]
@@ -193,27 +196,26 @@ namespace Essentials.Commands
                 Context.Respond("Player is not online or cannot be found!");
                 return;
             }
-
             if (amount <= 0)
             {
                 Context.Respond("Amount is wrong, need to be higher than 0");
                 return;
             }
 
-            var SenderPlayerID = Context.Player.Identity.IdentityId;
+            var fromIdentitiyId = Context.Player.Identity.IdentityId;
+            var toIdentitiyId = p.Identity.IdentityId;
 
-            MyBankingSystem.Static.TryGetAccountInfo(SenderPlayerID, out MyAccountInfo info);
-
-            if (info.Balance >= amount)
-            {
-                MyBankingSystem.ChangeBalance(SenderPlayerID, amount);
-                MyBankingSystem.ChangeBalance(p.IdentityId, amount);
-
-                ModCommunication.SendMessageTo(new NotificationMessage($"You have recieved {amount} credits from {Context.Player}!", 10000, "Blue"), p.SteamUserId);
-                ModCommunication.SendMessageTo(new NotificationMessage($"You have sent {amount} credits to {p.DisplayName}!", 10000, "Blue"), Context.Player.SteamUserId);
+            if(fromIdentitiyId == toIdentitiyId) {
+                Context.Respond("You cannot pay yourself!");
+                return;
             }
-            else
-                ModCommunication.SendMessageTo(new NotificationMessage($"You dont have {amount} credits to sent to {p.DisplayName}! ABORT", 10000, "Blue"), Context.Player.SteamUserId);
+
+            var finalFromBalance = MyBankingSystem.GetBalance(fromIdentitiyId) - amount;
+            var finalToBalance = MyBankingSystem.GetBalance(toIdentitiyId) + amount;
+            
+            MyBankingSystem.RequestTransfer_BroadcastToClients(Context.Player.Identity.IdentityId, p.Identity.IdentityId, amount, finalFromBalance, finalToBalance);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have recieved {amount:#,##0} credits from {Context.Player.DisplayName}!", 10000, "Blue"),p.SteamUserId);
+            ModCommunication.SendMessageTo(new NotificationMessage($"Your have sent {amount:#,##0} credits to {p.DisplayName}!", 10000, "Blue"),Context.Player.SteamUserId);
         }
     }
 }
